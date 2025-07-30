@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(cp:*)",
+      "Bash(touch:*)",
+      "Bash(npm install)",
+      "Bash(rm:*)",
+      "Bash(npx tsc --noEmit)"
+    ],
+    "deny": []
+  }
+}

@@ -1,0 +1,85 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Settings {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique @db.VarChar(100)
+  value       String?  @db.Text
+  description String?  @db.VarChar(255)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("t_settings")
+}
+
+model ErrorLog {
+  id          Int      @id @default(autoincrement())
+  geminiKey   String?  @map("gemini_key") @db.VarChar(100)
+  modelName   String?  @map("model_name") @db.VarChar(100)
+  errorType   String?  @map("error_type") @db.VarChar(50)
+  errorLog    String?  @map("error_log") @db.Text
+  errorCode   Int?     @map("error_code")
+  requestMsg  Json?    @map("request_msg")
+  requestTime DateTime @default(now()) @map("request_time")
+
+  @@map("t_error_logs")
+}
+
+model RequestLog {
+  id           Int      @id @default(autoincrement())
+  geminiKey    String?  @map("gemini_key") @db.VarChar(100)
+  modelName    String?  @map("model_name") @db.VarChar(100)
+  requestType  String?  @map("request_type") @db.VarChar(50)
+  requestMsg   Json?    @map("request_msg")
+  responseMsg  Json?    @map("response_msg")
+  requestTime  DateTime @default(now()) @map("request_time")
+  responseTime DateTime @default(now()) @map("response_time")
+  
+  @@map("t_request_logs")
+}
+
+model Stats {
+  id               Int      @id @default(autoincrement())
+  date             DateTime @db.Date
+  totalRequests    Int      @default(0) @map("total_requests")
+  successRequests  Int      @default(0) @map("success_requests")
+  failedRequests   Int      @default(0) @map("failed_requests")
+  totalTokens      BigInt   @default(0) @map("total_tokens")
+  inputTokens      BigInt   @default(0) @map("input_tokens")
+  outputTokens     BigInt   @default(0) @map("output_tokens")
+  
+  @@unique([date])
+  @@map("t_stats")
+}
+
+model KeyStatus {
+  id          Int      @id @default(autoincrement())
+  keyHash     String   @unique @map("key_hash") @db.VarChar(64)
+  keyType     String   @map("key_type") @db.VarChar(20) // 'API' or 'VERTEX'
+  isActive    Boolean  @default(true) @map("is_active")
+  lastChecked DateTime @default(now()) @map("last_checked")
+  failCount   Int      @default(0) @map("fail_count")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("t_key_status")
+}
+
+model FileUpload {
+  id         Int      @id @default(autoincrement())
+  filename   String   @db.VarChar(255)
+  originalName String @map("original_name") @db.VarChar(255)
+  mimeType   String   @map("mime_type") @db.VarChar(100)
+  size       BigInt
+  url        String?  @db.Text
+  provider   String   @db.VarChar(50) // 'SMMS', 'PICGO', 'CLOUDFLARE', 'INTERNAL'
+  uploadedAt DateTime @default(now()) @map("uploaded_at")
+  
+  @@map("t_file_uploads")
+}

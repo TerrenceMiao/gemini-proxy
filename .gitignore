@@ -259,3 +259,5 @@ $RECYCLE.BIN/
 
 tests/
 default_db
+
+node_modules/
