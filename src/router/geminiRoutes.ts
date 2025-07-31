@@ -114,13 +114,13 @@ export default async function geminiRoutes(fastify: FastifyInstance) {
 
     } catch (error) {
       logger.error('Failed to stream generate content:', error);
-      reply.raw.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+      reply.raw.write(`data: ${JSON.stringify({ error: (error as Error).message })}\n\n`);
       reply.raw.end();
     }
   });
 
   // List models
-  fastify.get('/models', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/models', async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
       logger.info('Getting models list');
       
@@ -151,7 +151,7 @@ export default async function geminiRoutes(fastify: FastifyInstance) {
   }>, reply: FastifyReply) => {
     try {
       const { modelId } = request.params;
-      const { content } = request.body;
+      const { content: _content } = request.body;
       
       logger.info(`Embed content request for model: ${modelId}`);
       
@@ -177,7 +177,7 @@ export default async function geminiRoutes(fastify: FastifyInstance) {
   }>, reply: FastifyReply) => {
     try {
       const { modelId } = request.params;
-      const { contents } = request.body;
+      const { contents: _contents } = request.body;
       
       logger.info(`Count tokens request for model: ${modelId}`);
       

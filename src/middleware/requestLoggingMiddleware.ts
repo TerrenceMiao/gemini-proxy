@@ -7,7 +7,7 @@ const logger = getMiddlewareLogger();
 
 export async function requestLoggingMiddleware(
   request: FastifyRequest,
-  reply: FastifyReply
+  _reply: FastifyReply
 ): Promise<void> {
   if (!settings.REQUEST_LOG_ENABLED) {
     return;
@@ -28,21 +28,8 @@ export async function requestLoggingMiddleware(
     requestId: request.id,
   });
 
-  // Hook into response to log completion
-  reply.addHook('onSend', async (request, reply, payload) => {
-    const endTime = Date.now();
-    const duration = endTime - startTime;
-    
-    logger.info(`Request completed: ${request.method} ${request.url}`, {
-      method: request.method,
-      url: request.url,
-      statusCode: reply.statusCode,
-      duration,
-      clientIp,
-      userAgent,
-      requestId: request.id,
-    });
-
-    return payload;
-  });
+  // Store start time for response logging
+  (request as any).startTime = startTime;
+  (request as any).clientIp = clientIp;
+  (request as any).userAgent = userAgent;
 }

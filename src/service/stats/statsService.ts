@@ -42,7 +42,7 @@ export interface KeyStats {
 export class StatsService {
   async getDailyStats(date: Date): Promise<DailyStats> {
     try {
-      const dateString = date.toISOString().split('T')[0];
+      const dateString = date.toISOString().split('T')[0] || '';
       const stats = await databaseService.getStats(date, date);
       
       if (stats.length === 0) {
@@ -67,7 +67,7 @@ export class StatsService {
 
     } catch (error) {
       logger.error('Failed to get daily stats:', error);
-      return this.createEmptyStats(date.toISOString().split('T')[0]);
+      return this.createEmptyStats(date.toISOString().split('T')[0] || '');
     }
   }
 
@@ -155,14 +155,15 @@ export class StatsService {
     try {
       const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
       
-      await databaseService.updateStats(dateOnly, {
-        totalRequests: updates.totalRequests,
-        successRequests: updates.successRequests,
-        failedRequests: updates.failedRequests,
-        totalTokens: updates.totalTokens ? BigInt(updates.totalTokens) : undefined,
-        inputTokens: updates.inputTokens ? BigInt(updates.inputTokens) : undefined,
-        outputTokens: updates.outputTokens ? BigInt(updates.outputTokens) : undefined,
-      });
+      const updateData: any = {};
+      if (updates.totalRequests !== undefined) updateData.totalRequests = updates.totalRequests;
+      if (updates.successRequests !== undefined) updateData.successRequests = updates.successRequests;
+      if (updates.failedRequests !== undefined) updateData.failedRequests = updates.failedRequests;
+      if (updates.totalTokens !== undefined) updateData.totalTokens = BigInt(updates.totalTokens);
+      if (updates.inputTokens !== undefined) updateData.inputTokens = BigInt(updates.inputTokens);
+      if (updates.outputTokens !== undefined) updateData.outputTokens = BigInt(updates.outputTokens);
+      
+      await databaseService.updateStats(dateOnly, updateData);
 
     } catch (error) {
       logger.error('Failed to update daily stats:', error);
@@ -196,7 +197,7 @@ export class StatsService {
     }
   }
 
-  async getModelStats(startDate: Date, endDate: Date): Promise<ModelStats[]> {
+  async getModelStats(_startDate: Date, _endDate: Date): Promise<ModelStats[]> {
     try {
       // This would require a more complex query to get model-specific stats
       // For now, return empty array
@@ -228,7 +229,7 @@ export class StatsService {
     }
   }
 
-  async getHourlyStats(date: Date): Promise<Array<{
+  async getHourlyStats(_date: Date): Promise<Array<{
     hour: number;
     requests: number;
     tokens: number;
@@ -245,7 +246,7 @@ export class StatsService {
     }
   }
 
-  async getTopModels(limit: number = 10): Promise<ModelStats[]> {
+  async getTopModels(_limit: number = 10): Promise<ModelStats[]> {
     try {
       // This would require aggregation of model usage from request logs
       // For now, return empty array

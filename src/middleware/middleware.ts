@@ -1,6 +1,7 @@
-import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import { FastifyInstance } from 'fastify';
 import { getMiddlewareLogger } from '@/log/logger';
 import { requestLoggingMiddleware } from './requestLoggingMiddleware';
+import { responseLoggingMiddleware } from './responseLoggingMiddleware';
 import { smartRoutingMiddleware } from './smartRoutingMiddleware';
 
 const logger = getMiddlewareLogger();
@@ -10,6 +11,9 @@ export function setupMiddlewares(app: FastifyInstance): void {
 
   // Request logging middleware
   app.addHook('onRequest', requestLoggingMiddleware);
+
+  // Response logging middleware
+  app.addHook('onResponse', responseLoggingMiddleware);
 
   // Smart routing middleware
   app.addHook('preHandler', smartRoutingMiddleware);

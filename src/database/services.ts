@@ -22,8 +22,8 @@ export class DatabaseService {
     try {
       await prisma.settings.upsert({
         where: { key },
-        update: { value, description },
-        create: { key, value, description },
+        update: { value, description: description || null },
+        create: { key, value, description: description || null },
       });
     } catch (error) {
       logger.error(`Failed to set setting ${key}:`, error);
@@ -58,11 +58,11 @@ export class DatabaseService {
     try {
       await prisma.errorLog.create({
         data: {
-          geminiKey: data.geminiKey,
-          modelName: data.modelName,
-          errorType: data.errorType,
-          errorLog: data.errorLog,
-          errorCode: data.errorCode,
+          geminiKey: data.geminiKey || null,
+          modelName: data.modelName || null,
+          errorType: data.errorType || null,
+          errorLog: data.errorLog || null,
+          errorCode: data.errorCode || null,
           requestMsg: data.requestMsg,
         },
       });
@@ -117,9 +117,9 @@ export class DatabaseService {
     try {
       await prisma.requestLog.create({
         data: {
-          geminiKey: data.geminiKey,
-          modelName: data.modelName,
-          requestType: data.requestType,
+          geminiKey: data.geminiKey || null,
+          modelName: data.modelName || null,
+          requestType: data.requestType || null,
           requestMsg: data.requestMsg,
           responseMsg: data.responseMsg,
           responseTime: data.responseTime || new Date(),

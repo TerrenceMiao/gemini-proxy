@@ -11,8 +11,8 @@ async function bootstrap() {
   try {
     const app = await createApp();
     
-    const port = process.env.PORT ? parseInt(process.env.PORT) : 8000;
-    const host = process.env.HOST || '0.0.0.0';
+    const port = process.env['PORT'] ? parseInt(process.env['PORT']) : 8000;
+    const host = process.env['HOST'] || '0.0.0.0';
     
     await app.listen({ port, host });
     

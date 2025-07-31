@@ -1,5 +1,4 @@
 import { getServiceLogger } from '@/log/logger';
-import { settings } from '@/config/config';
 import { geminiChatService } from '@/service/chat/geminiChatService';
 import { ExternalServiceError } from '@/exception/exceptions';
 
@@ -57,7 +56,7 @@ export class TTSService {
               voiceName: request.voice,
             },
           },
-        } : undefined,
+        } : undefined as any,
       };
 
       const response = await geminiChatService.generateContent(geminiRequest);
@@ -102,7 +101,7 @@ export class TTSService {
               voiceName: request.voice,
             },
           },
-        } : undefined,
+        } : undefined as any,
       };
 
       const streamGenerator = geminiChatService.streamGenerateContent(geminiRequest);
@@ -127,12 +126,12 @@ export class TTSService {
   private extractAudioFromResponse(response: any): TTSResponse {
     // Extract audio data from Gemini response
     // This is a simplified implementation - actual structure may vary
-    if (response.candidates && response.candidates[0] && response.candidates[0].content) {
+    if (response.candidates?.[0]?.content) {
       const content = response.candidates[0].content;
       
       if (content.parts) {
         for (const part of content.parts) {
-          if (part.inlineData && part.inlineData.mimeType && part.inlineData.mimeType.startsWith('audio/')) {
+          if (part.inlineData?.mimeType?.startsWith('audio/')) {
             return {
               audio: part.inlineData.data,
               contentType: part.inlineData.mimeType,
@@ -148,12 +147,12 @@ export class TTSService {
 
   private extractAudioChunkFromResponse(chunk: any): Buffer | null {
     // Extract audio chunk from streaming response
-    if (chunk.candidates && chunk.candidates[0] && chunk.candidates[0].content) {
+    if (chunk.candidates?.[0]?.content) {
       const content = chunk.candidates[0].content;
       
       if (content.parts) {
         for (const part of content.parts) {
-          if (part.inlineData && part.inlineData.mimeType && part.inlineData.mimeType.startsWith('audio/')) {
+          if (part.inlineData?.mimeType?.startsWith('audio/')) {
             return Buffer.from(part.inlineData.data, 'base64');
           }
         }

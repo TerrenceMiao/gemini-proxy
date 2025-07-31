@@ -67,7 +67,7 @@ export function isObject(item: any): boolean {
   return item && typeof item === 'object' && !Array.isArray(item);
 }
 
-export function deepMerge<T>(target: T, source: Partial<T>): T {
+export function deepMerge<T extends object>(target: T, source: Partial<T>): T {
   const output = { ...target };
   
   if (isObject(target) && isObject(source)) {
@@ -76,7 +76,7 @@ export function deepMerge<T>(target: T, source: Partial<T>): T {
         if (!(key in target)) {
           Object.assign(output, { [key]: source[key as keyof T] });
         } else {
-          (output as any)[key] = deepMerge(target[key as keyof T], source[key as keyof T]);
+          (output as any)[key] = deepMerge(target[key as keyof T] as object, source[key as keyof T] as Partial<object>);
         }
       } else {
         Object.assign(output, { [key]: source[key as keyof T] });

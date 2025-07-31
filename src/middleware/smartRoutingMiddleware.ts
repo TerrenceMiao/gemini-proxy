@@ -5,7 +5,7 @@ const logger = getMiddlewareLogger();
 
 export async function smartRoutingMiddleware(
   request: FastifyRequest,
-  reply: FastifyReply
+  _reply: FastifyReply
 ): Promise<void> {
   // Add request ID for tracking
   if (!request.id) {
@@ -30,7 +30,7 @@ export async function smartRoutingMiddleware(
   // Detect TTS requests
   if (request.url.includes('generateContent') && request.body) {
     const body = request.body as any;
-    if (body.responseModalities && body.responseModalities.includes('AUDIO')) {
+    if (body.responseModalities?.includes('AUDIO')) {
       (request as any).isTTSRequest = true;
       logger.debug('TTS request detected', { requestId: request.id });
     }

@@ -9,7 +9,7 @@ const logger = getRouterLogger();
 
 export default async function configRoutes(fastify: FastifyInstance) {
   // Get current configuration
-  fastify.get('/', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/', async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
       logger.info('Getting current configuration');
       
@@ -128,7 +128,7 @@ export default async function configRoutes(fastify: FastifyInstance) {
   });
 
   // Reset configuration to defaults
-  fastify.post('/reset', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.post('/reset', async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
       logger.info('Resetting configuration to defaults');
       
@@ -147,7 +147,7 @@ export default async function configRoutes(fastify: FastifyInstance) {
   });
 
   // Get configuration schema
-  fastify.get('/schema', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/schema', async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
       logger.info('Getting configuration schema');
       
@@ -184,7 +184,7 @@ export default async function configRoutes(fastify: FastifyInstance) {
   });
 
   // Export configuration
-  fastify.get('/export', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/export', async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
       logger.info('Exporting configuration');
       
@@ -341,11 +341,11 @@ function validateFullConfig(config: Record<string, any>): string[] {
       try {
         validateSetting(key, value);
       } catch (error) {
-        errors.push(`${key}: ${error.message}`);
+        errors.push(`${key}: ${(error as Error).message}`);
       }
     }
   } catch (error) {
-    errors.push(`General validation error: ${error.message}`);
+    errors.push(`General validation error: ${(error as Error).message}`);
   }
 
   return errors;

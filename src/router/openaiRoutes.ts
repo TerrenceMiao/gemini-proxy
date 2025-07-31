@@ -62,7 +62,7 @@ export default async function openaiRoutes(fastify: FastifyInstance) {
   });
 
   // List models
-  fastify.get('/models', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/models', async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
       logger.info('Getting OpenAI models list');
       
@@ -157,7 +157,7 @@ export default async function openaiRoutes(fastify: FastifyInstance) {
       
       const inputs = Array.isArray(input) ? input : [input];
       
-      const data = inputs.map((text, index) => ({
+      const data = inputs.map((_text, index) => ({
         object: 'embedding',
         embedding: new Array(768).fill(0), // Placeholder
         index,
@@ -219,7 +219,7 @@ function convertGeminiToOpenAI(response: any, model: string): any {
       const candidate = response.candidates[i];
       let content = '';
       
-      if (candidate.content && candidate.content.parts) {
+      if (candidate.content?.parts) {
         content = candidate.content.parts
           .map((part: any) => part.text || '')
           .join('');
@@ -288,7 +288,7 @@ async function handleStreamingChat(geminiRequest: any, reply: FastifyReply) {
 
   } catch (error) {
     logger.error('Failed to handle streaming chat:', error);
-    reply.raw.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+    reply.raw.write(`data: ${JSON.stringify({ error: (error as Error).message })}\n\n`);
     reply.raw.end();
   }
 }
@@ -301,7 +301,7 @@ function convertGeminiChunkToOpenAI(chunk: any, model: string): any {
       const candidate = chunk.candidates[i];
       let content = '';
       
-      if (candidate.content && candidate.content.parts) {
+      if (candidate.content?.parts) {
         content = candidate.content.parts
           .map((part: any) => part.text || '')
           .join('');

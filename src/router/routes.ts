@@ -27,19 +27,19 @@ export function setupRouters(app: FastifyInstance): void {
   // app.register(vertexExpressRoutes, { prefix: '/vertex' });
 
   // Register page routes
-  app.get('/', async (request, reply) => {
+  app.get('/', async (_request, reply) => {
     return reply.view('keys_status.html', { title: 'Gemini Proxy' });
   });
 
-  app.get('/keys', async (request, reply) => {
+  app.get('/keys', async (_request, reply) => {
     return reply.view('keys_status.html', { title: 'Keys Status' });
   });
 
-  app.get('/config', async (request, reply) => {
+  app.get('/config', async (_request, reply) => {
     return reply.view('config_editor.html', { title: 'Configuration' });
   });
 
-  app.get('/logs', async (request, reply) => {
+  app.get('/logs', async (_request, reply) => {
     return reply.view('error_logs.html', { title: 'Error Logs' });
   });
 

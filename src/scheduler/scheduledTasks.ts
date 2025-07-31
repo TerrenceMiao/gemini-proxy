@@ -58,12 +58,12 @@ export function stopScheduler(): void {
   logger.info('Scheduler stopped');
 }
 
-async function checkKeyHealth(): Promise<void> {
-  // TODO: Implement key health check logic
-  logger.debug('Key health check completed');
-}
+// async function checkKeyHealth(): Promise<void> {
+//   // TODO: Implement key health check logic
+//   logger.debug('Key health check completed');
+// }
 
-async function cleanupOldLogs(): Promise<void> {
-  // TODO: Implement log cleanup logic
-  logger.debug('Log cleanup completed');
-}
+// async function cleanupOldLogs(): Promise<void> {
+//   // TODO: Implement log cleanup logic
+//   logger.debug('Log cleanup completed');
+// }

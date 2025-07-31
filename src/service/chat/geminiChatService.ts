@@ -1,4 +1,4 @@
-import axios, { AxiosResponse } from 'axios';
+import axios from 'axios';
 import { getServiceLogger } from '@/log/logger';
 import { settings } from '@/config/config';
 import { getKeyManagerInstance } from '@/service/key/keyManager';

@@ -83,7 +83,6 @@ export async function createApp(): Promise<FastifyInstance> {
   const app = Fastify({
     logger: {
       level: 'info',
-      prettyPrint: process.env.NODE_ENV === 'development',
     },
   });
 

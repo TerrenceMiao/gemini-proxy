@@ -8,7 +8,7 @@ const logger = getRouterLogger();
 
 export default async function statsRoutes(fastify: FastifyInstance) {
   // Get stats overview
-  fastify.get('/overview', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/overview', async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
       logger.info('Getting stats overview');
       
@@ -119,7 +119,7 @@ export default async function statsRoutes(fastify: FastifyInstance) {
   });
 
   // Get key stats
-  fastify.get('/keys', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/keys', async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
       logger.info('Getting key stats');
       
@@ -188,7 +188,7 @@ export default async function statsRoutes(fastify: FastifyInstance) {
   });
 
   // Get system stats
-  fastify.get('/system', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/system', async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
       logger.info('Getting system stats');
       

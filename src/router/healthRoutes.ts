@@ -8,14 +8,14 @@ const logger = getRouterLogger();
 
 export default async function healthRoutes(fastify: FastifyInstance) {
   // Basic health check
-  fastify.get('/health', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/health', async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
       const health = {
         status: 'healthy',
         timestamp: new Date().toISOString(),
         uptime: Math.floor(process.uptime()),
         version: getCurrentVersion(),
-        environment: process.env.NODE_ENV || 'development',
+        environment: process.env['NODE_ENV'] || 'development',
       };
 
       return reply.send(health);
@@ -25,13 +25,13 @@ export default async function healthRoutes(fastify: FastifyInstance) {
       return reply.status(503).send({
         status: 'unhealthy',
         timestamp: new Date().toISOString(),
-        error: error.message,
+        error: (error as Error).message,
       });
     }
   });
 
   // Detailed health check
-  fastify.get('/health/detailed', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/health/detailed', async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
       const startTime = Date.now();
       
@@ -87,7 +87,7 @@ export default async function healthRoutes(fastify: FastifyInstance) {
         timestamp: new Date().toISOString(),
         uptime: Math.floor(process.uptime()),
         version: getCurrentVersion(),
-        environment: process.env.NODE_ENV || 'development',
+        environment: process.env['NODE_ENV'] || 'development',
         responseTime: totalResponseTime,
         checks: {
           database: {
@@ -117,13 +117,13 @@ export default async function healthRoutes(fastify: FastifyInstance) {
       return reply.status(503).send({
         status: 'unhealthy',
         timestamp: new Date().toISOString(),
-        error: error.message,
+        error: (error as Error).message,
       });
     }
   });
 
   // Readiness check
-  fastify.get('/health/ready', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/health/ready', async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
       // Check if the application is ready to serve requests
       await prisma.$queryRaw`SELECT 1`;
@@ -148,14 +148,14 @@ export default async function healthRoutes(fastify: FastifyInstance) {
       logger.error('Readiness check failed:', error);
       return reply.status(503).send({
         status: 'not ready',
-        reason: error.message,
+        reason: (error as Error).message,
         timestamp: new Date().toISOString(),
       });
     }
   });
 
   // Liveness check
-  fastify.get('/health/live', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/health/live', async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
       // Basic liveness check - just confirm the process is running
       return reply.send({
@@ -170,7 +170,7 @@ export default async function healthRoutes(fastify: FastifyInstance) {
       return reply.status(503).send({
         status: 'dead',
         timestamp: new Date().toISOString(),
-        error: error.message,
+        error: (error as Error).message,
       });
     }
   });

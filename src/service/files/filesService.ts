@@ -1,4 +1,4 @@
-import { createReadStream, createWriteStream, promises as fs } from 'fs';
+import { promises as fs } from 'fs';
 import { join } from 'path';
 import { getServiceLogger } from '@/log/logger';
 import { settings } from '@/config/config';

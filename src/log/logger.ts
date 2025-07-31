@@ -1,10 +1,10 @@
 import pino from 'pino';
 
-const isDevelopment = process.env.NODE_ENV === 'development';
+const isDevelopment = process.env['NODE_ENV'] === 'development';
 
 // Create base logger configuration
 const loggerConfig = {
-  level: process.env.LOG_LEVEL || 'info',
+  level: process.env['LOG_LEVEL'] || 'info',
   ...(isDevelopment && {
     transport: {
       target: 'pino-pretty',

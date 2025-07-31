@@ -14,33 +14,37 @@ export class KeyManager {
     logger.info(`KeyManager initialized with ${apiKeys.length} API keys and ${vertexKeys.length} Vertex keys`);
   }
 
-  getNextKey(): string | null {
+  getNextKey(): string | undefined {
     const availableKeys = this.apiKeys.filter(key => !this.failedKeys.has(key));
     
     if (availableKeys.length === 0) {
       logger.error('No available API keys');
-      return null;
+      return undefined;
     }
 
     const key = availableKeys[this.currentKeyIndex % availableKeys.length];
     this.currentKeyIndex++;
     
-    logger.debug(`Using API key: ${this.sanitizeKey(key)}`);
+    if (key) {
+      logger.debug(`Using API key: ${this.sanitizeKey(key)}`);
+    }
     return key;
   }
 
-  getNextVertexKey(): string | null {
+  getNextVertexKey(): string | undefined {
     const availableKeys = this.vertexKeys.filter(key => !this.failedKeys.has(key));
     
     if (availableKeys.length === 0) {
       logger.error('No available Vertex keys');
-      return null;
+      return undefined;
     }
 
     const key = availableKeys[this.currentKeyIndex % availableKeys.length];
     this.currentKeyIndex++;
     
-    logger.debug(`Using Vertex key: ${this.sanitizeKey(key)}`);
+    if (key) {
+      logger.debug(`Using Vertex key: ${this.sanitizeKey(key)}`);
+    }
     return key;
   }
 
