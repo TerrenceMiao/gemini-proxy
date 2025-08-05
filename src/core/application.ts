@@ -8,7 +8,7 @@ import staticPlugin from '@fastify/static';
 import viewPlugin from '@fastify/view';
 import nunjucks from 'nunjucks';
 
-import { settings, syncInitialSettings } from '@/config/config';
+import { syncInitialSettings } from '@/config/config';
 import { initializeDatabase } from '@/database/initialization';
 import { setupExceptionHandlers } from '@/exception/exceptions';
 import { getApplicationLogger } from '@/log/logger';
@@ -36,10 +36,10 @@ async function setupDatabaseAndConfig(): Promise<void> {
   try {
     await initializeDatabase();
     logger.info('Database initialized successfully');
-    
+
     await syncInitialSettings();
-    
-    await getKeyManagerInstance(settings.API_KEYS, settings.VERTEX_API_KEYS);
+
+    await getKeyManagerInstance();
     logger.info('Database, config sync, and KeyManager initialized successfully');
   } catch (error) {
     logger.error('Failed to setup database and config:', error);
@@ -51,20 +51,21 @@ async function performUpdateCheck(app: FastifyInstance): Promise<void> {
   try {
     const { updateAvailable, latestVersion, errorMessage } = await checkForUpdates();
     const currentVersion = getCurrentVersion();
-    
+
     const updateInfo = {
       updateAvailable,
       latestVersion,
       errorMessage,
       currentVersion,
     };
-    
+
     // Store update info in app context
-    app.decorate('updateInfo', updateInfo);
-    
-    logger.info('Update check completed. Info:', updateInfo);
+    // app.decorate('updateInfo', updateInfo);
+    (app as any).updateInfo = updateInfo;
+
+    logger.info('Update check completed - updateInfo: ' + JSON.stringify(updateInfo));
   } catch (error) {
-    logger.error('Failed to perform update check:', error);
+    logger.error('Failed to perform update check: ' + JSON.stringify(error));
   }
 }
 
@@ -79,7 +80,7 @@ function startBackgroundScheduler(): void {
 
 export async function createApp(): Promise<FastifyInstance> {
   const currentVersion = getCurrentVersion();
-  
+
   const app = Fastify({
     logger: {
       level: 'info',
@@ -89,7 +90,7 @@ export async function createApp(): Promise<FastifyInstance> {
   // Setup lifecycle hooks
   app.addHook('onReady', async () => {
     logger.info('Application starting up...');
-    
+
     try {
       await setupDatabaseAndConfig();
       await performUpdateCheck(app);
@@ -132,7 +133,7 @@ export async function createApp(): Promise<FastifyInstance> {
     errorMessage: 'Initializing...',
     currentVersion,
   };
-  
+
   app.decorate('updateInfo', initialUpdateInfo);
 
   // Setup middlewares

@@ -1,4 +1,5 @@
 import { getServiceLogger } from '@/log/logger';
+import settings from '@/config/config';
 
 const logger = getServiceLogger();
 
@@ -8,15 +9,15 @@ export class KeyManager {
   private currentKeyIndex = 0;
   private failedKeys = new Set<string>();
 
-  constructor(apiKeys: string[] = [], vertexKeys: string[] = []) {
-    this.apiKeys = apiKeys;
-    this.vertexKeys = vertexKeys;
-    logger.info(`KeyManager initialized with ${apiKeys.length} API keys and ${vertexKeys.length} Vertex keys`);
+  constructor() {
+    this.apiKeys = settings.API_KEYS;
+    this.vertexKeys = settings.VERTEX_API_KEYS;
+    logger.info(`KeyManager initialized with ${this.apiKeys.length} API keys and ${this.vertexKeys.length} Vertex keys`);
   }
 
   getNextKey(): string | undefined {
     const availableKeys = this.apiKeys.filter(key => !this.failedKeys.has(key));
-    
+
     if (availableKeys.length === 0) {
       logger.error('No available API keys');
       return undefined;
@@ -24,7 +25,7 @@ export class KeyManager {
 
     const key = availableKeys[this.currentKeyIndex % availableKeys.length];
     this.currentKeyIndex++;
-    
+
     if (key) {
       logger.debug(`Using API key: ${this.sanitizeKey(key)}`);
     }
@@ -33,7 +34,7 @@ export class KeyManager {
 
   getNextVertexKey(): string | undefined {
     const availableKeys = this.vertexKeys.filter(key => !this.failedKeys.has(key));
-    
+
     if (availableKeys.length === 0) {
       logger.error('No available Vertex keys');
       return undefined;
@@ -41,7 +42,7 @@ export class KeyManager {
 
     const key = availableKeys[this.currentKeyIndex % availableKeys.length];
     this.currentKeyIndex++;
-    
+
     if (key) {
       logger.debug(`Using Vertex key: ${this.sanitizeKey(key)}`);
     }
@@ -62,7 +63,7 @@ export class KeyManager {
     const total = this.apiKeys.length + this.vertexKeys.length;
     const failed = this.failedKeys.size;
     const available = total - failed;
-    
+
     return { total, available, failed };
   }
 
@@ -74,9 +75,9 @@ export class KeyManager {
 
 let keyManagerInstance: KeyManager | null = null;
 
-export async function getKeyManagerInstance(apiKeys: string[] = [], vertexKeys: string[] = []): Promise<KeyManager> {
+export async function getKeyManagerInstance(): Promise<KeyManager> {
   if (!keyManagerInstance) {
-    keyManagerInstance = new KeyManager(apiKeys, vertexKeys);
+    keyManagerInstance = new KeyManager();
   }
   return keyManagerInstance;
 }

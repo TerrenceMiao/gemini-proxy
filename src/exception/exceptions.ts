@@ -140,5 +140,5 @@ export function setupExceptionHandlers(app: FastifyInstance): void {
     });
   });
 
-  logger.info('Exception handlers configured');
+  logger.info('Exception handlers configured successfully');
 }
