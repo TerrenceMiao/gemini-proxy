@@ -8,10 +8,10 @@ let prisma: PrismaClient | null = null;
 
 export async function initializeDatabase(): Promise<void> {
   try {
-    const databaseUrl = `mysql://${settings.MYSQL_USER}:${settings.MYSQL_PASSWORD}@${settings.MYSQL_HOST}:${settings.MYSQL_PORT}/${settings.MYSQL_DATABASE}`;
-    const encryptedDatabaseUrl = `mysql://${settings.MYSQL_USER}:xxxxxxxx@${settings.MYSQL_HOST}:${settings.MYSQL_PORT}/${settings.MYSQL_DATABASE}`;
+    const { MYSQL_USER, MYSQL_PASSWORD, MYSQL_HOST, MYSQL_PORT, MYSQL_DATABASE } = settings;
+    const databaseUrl = `mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@${MYSQL_HOST}:${MYSQL_PORT}/${MYSQL_DATABASE}`;
 
-    logger.info('Initializing database connection: ' + encryptedDatabaseUrl);
+    logger.info(`Initializing database connection to mysql://${MYSQL_USER}:xxxxxxxx@${MYSQL_HOST}:${MYSQL_PORT}/${MYSQL_DATABASE}`);
     prisma = new PrismaClient({
       datasources: {
         db: {
