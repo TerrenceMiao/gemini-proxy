@@ -1,12 +1,8 @@
 import Fastify, { FastifyInstance } from 'fastify';
-import { join } from 'path';
 import { PrismaClient } from '@prisma/client';
 import helmet from '@fastify/helmet';
 import cors from '@fastify/cors';
 import multipart from '@fastify/multipart';
-import staticPlugin from '@fastify/static';
-import viewPlugin from '@fastify/view';
-import nunjucks from 'nunjucks';
 
 import { syncInitialSettings } from '@/config/config';
 import { initializeDatabase } from '@/database/initialization';
@@ -111,20 +107,6 @@ export async function createApp(): Promise<FastifyInstance> {
   await app.register(helmet);
   await app.register(cors);
   await app.register(multipart);
-
-  // Static files
-  await app.register(staticPlugin, {
-    root: join(__dirname, '../static'),
-    prefix: '/static/',
-  });
-
-  // View engine
-  await app.register(viewPlugin, {
-    engine: {
-      nunjucks,
-    },
-    root: join(__dirname, '../templates'),
-  });
 
   // Initialize update info
   const initialUpdateInfo = {
