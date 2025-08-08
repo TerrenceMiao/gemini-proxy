@@ -76,7 +76,7 @@ export class ModelService {
       return filteredModels;
 
     } catch (error) {
-      logger.error('Failed to fetch models:', error);
+      logger.error({ err: error }, 'Failed to fetch models:');
       
       // If we have cached models, return them as fallback
       if (this.cachedModels.length > 0) {
@@ -141,7 +141,7 @@ export class ModelService {
       supportsThinking: this.modelSupportsThinking(modelName),
     };
 
-    logger.debug(`Model capabilities for ${modelName}:`, capabilities);
+    logger.debug(capabilities, `Model capabilities for ${modelName}:`);
     return capabilities;
   }
 
@@ -213,7 +213,7 @@ export class ModelService {
       const model = await this.getModel(modelName);
       return model !== null;
     } catch (error) {
-      logger.error(`Failed to validate model ${modelName}:`, error);
+      logger.error({ err: error }, `Failed to validate model ${modelName}:`);
       return false;
     }
   }

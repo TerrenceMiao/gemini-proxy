@@ -13,7 +13,7 @@ export class DatabaseService {
       });
       return setting?.value || null;
     } catch (error) {
-      logger.error(`Failed to get setting ${key}:`, error);
+      logger.error({ err: error }, `Failed to get setting ${key}:`);
       return null;
     }
   }
@@ -26,7 +26,7 @@ export class DatabaseService {
         create: { key, value, description: description || null },
       });
     } catch (error) {
-      logger.error(`Failed to set setting ${key}:`, error);
+      logger.error({ err: error }, `Failed to set setting ${key}:`);
       throw error;
     }
   }
@@ -41,7 +41,7 @@ export class DatabaseService {
         return acc;
       }, {} as Record<string, string>);
     } catch (error) {
-      logger.error('Failed to get all settings:', error);
+      logger.error({ err: error }, 'Failed to get all settings:');
       return {};
     }
   }
@@ -67,7 +67,7 @@ export class DatabaseService {
         },
       });
     } catch (error) {
-      logger.error('Failed to create error log:', error);
+      logger.error({ err: error }, 'Failed to create error log:');
       throw error;
     }
   }
@@ -80,7 +80,7 @@ export class DatabaseService {
         orderBy: { requestTime: 'desc' },
       });
     } catch (error) {
-      logger.error('Failed to get error logs:', error);
+      logger.error({ err: error }, 'Failed to get error logs:');
       return [];
     }
   }
@@ -100,7 +100,7 @@ export class DatabaseService {
 
       return result.count;
     } catch (error) {
-      logger.error('Failed to delete old error logs:', error);
+      logger.error({ err: error }, 'Failed to delete old error logs:');
       return 0;
     }
   }
@@ -126,7 +126,7 @@ export class DatabaseService {
         },
       });
     } catch (error) {
-      logger.error('Failed to create request log:', error);
+      logger.error({ err: error }, 'Failed to create request log:');
       throw error;
     }
   }
@@ -139,7 +139,7 @@ export class DatabaseService {
         orderBy: { requestTime: 'desc' },
       });
     } catch (error) {
-      logger.error('Failed to get request logs:', error);
+      logger.error({ err: error }, 'Failed to get request logs:');
       return [];
     }
   }
@@ -159,7 +159,7 @@ export class DatabaseService {
 
       return result.count;
     } catch (error) {
-      logger.error('Failed to delete old request logs:', error);
+      logger.error({ err: error }, 'Failed to delete old request logs:');
       return 0;
     }
   }
@@ -180,7 +180,7 @@ export class DatabaseService {
         create: { date, ...data },
       });
     } catch (error) {
-      logger.error('Failed to update stats:', error);
+      logger.error({ err: error }, 'Failed to update stats:');
       throw error;
     }
   }
@@ -197,7 +197,7 @@ export class DatabaseService {
         orderBy: { date: 'desc' },
       });
     } catch (error) {
-      logger.error('Failed to get stats:', error);
+      logger.error({ err: error }, 'Failed to get stats:');
       return [];
     }
   }
@@ -211,7 +211,7 @@ export class DatabaseService {
         create: { keyHash, keyType, isActive, failCount },
       });
     } catch (error) {
-      logger.error('Failed to update key status:', error);
+      logger.error({ err: error }, 'Failed to update key status:');
       throw error;
     }
   }
@@ -222,7 +222,7 @@ export class DatabaseService {
         orderBy: { lastChecked: 'desc' },
       });
     } catch (error) {
-      logger.error('Failed to get key statuses:', error);
+      logger.error({ err: error }, 'Failed to get key statuses:');
       return [];
     }
   }
@@ -241,7 +241,7 @@ export class DatabaseService {
         data,
       });
     } catch (error) {
-      logger.error('Failed to create file upload record:', error);
+      logger.error({ err: error }, 'Failed to create file upload record:');
       throw error;
     }
   }
@@ -252,7 +252,7 @@ export class DatabaseService {
         where: { id },
       });
     } catch (error) {
-      logger.error('Failed to get file upload:', error);
+      logger.error({ err: error }, 'Failed to get file upload:');
       return null;
     }
   }

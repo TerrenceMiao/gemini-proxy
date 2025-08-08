@@ -38,7 +38,7 @@ async function setupDatabaseAndConfig(): Promise<void> {
     await getKeyManagerInstance();
     logger.info('Database, config sync, and KeyManager initialized successfully');
   } catch (error) {
-    logger.error('Failed to setup database and config:', error);
+    logger.error({ err: error }, 'Failed to setup database and config:');
     throw error;
   }
 }
@@ -61,7 +61,7 @@ async function performUpdateCheck(app: FastifyInstance): Promise<void> {
 
     logger.info('Update check completed - updateInfo: ' + JSON.stringify(updateInfo));
   } catch (error) {
-    logger.error('Failed to perform update check: ' + JSON.stringify(error));
+    logger.error({ err: error }, 'Failed to perform update check:');
   }
 }
 
@@ -70,7 +70,7 @@ function startBackgroundScheduler(): void {
     startScheduler();
     logger.info('Scheduler started successfully');
   } catch (error) {
-    logger.error('Failed to start scheduler:', error);
+    logger.error({ err: error }, 'Failed to start scheduler:');
   }
 }
 
@@ -92,7 +92,7 @@ export async function createApp(): Promise<FastifyInstance> {
       await performUpdateCheck(app);
       startBackgroundScheduler();
     } catch (error) {
-      logger.error('Critical error during application startup:', error);
+      logger.error({ err: error }, 'Critical error during application startup:');
       throw error;
     }
   });

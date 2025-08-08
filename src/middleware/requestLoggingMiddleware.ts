@@ -18,7 +18,7 @@ export async function requestLoggingMiddleware(
   const userAgent = request.headers['user-agent'] || 'unknown';
   
   // Log incoming request
-  logger.info(`Incoming request: ${request.method} ${request.url}`, {
+  logger.info({
     method: request.method,
     url: request.url,
     clientIp,
@@ -26,7 +26,7 @@ export async function requestLoggingMiddleware(
     headers: redactSensitiveData(request.headers),
     body: redactSensitiveData(request.body),
     requestId: request.id,
-  });
+  }, `Incoming request: ${request.method} ${request.url}`);
 
   // Store start time for response logging
   (request as any).startTime = startTime;

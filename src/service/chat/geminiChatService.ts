@@ -87,11 +87,11 @@ export class GeminiChatService {
           });
         }
 
-        logger.info(`Request successful in ${endTime - startTime}ms`, {
+        logger.info({
           model,
           key: this.sanitizeKey(currentKey),
           tokens: response.data.usageMetadata?.totalTokenCount,
-        });
+        }, `Request successful in ${endTime - startTime}ms`);
 
         return response.data;
 
@@ -114,11 +114,11 @@ export class GeminiChatService {
           }
         }
 
-        logger.error(`Request failed (attempt ${attempt + 1}/${settings.MAX_RETRIES}):`, {
+        logger.error({
           error: error.message,
           status: error.response?.status,
           key: currentKey ? this.sanitizeKey(currentKey) : 'none',
-        });
+        }, `Request failed (attempt ${attempt + 1}/${settings.MAX_RETRIES}):`);
 
         // Don't retry on certain errors
         if (error.response?.status === HTTP_STATUS_CODES.BAD_REQUEST || 
@@ -182,7 +182,7 @@ export class GeminiChatService {
                 fullResponse += JSON.stringify(parsed);
                 yield parsed;
               } catch (parseError) {
-                logger.debug('Failed to parse streaming chunk:', parseError);
+                logger.debug({ err: parseError }, 'Failed to parse streaming chunk:');
               }
             }
           }
@@ -203,10 +203,10 @@ export class GeminiChatService {
           });
         }
 
-        logger.info(`Streaming request successful in ${endTime - startTime}ms`, {
+        logger.info({
           model,
           key: this.sanitizeKey(currentKey),
-        });
+        }, `Streaming request successful in ${endTime - startTime}ms`);
 
         return;
 
@@ -229,11 +229,11 @@ export class GeminiChatService {
           }
         }
 
-        logger.error(`Streaming request failed (attempt ${attempt + 1}/${settings.MAX_RETRIES}):`, {
+        logger.error({
           error: error.message,
           status: error.response?.status,
           key: currentKey ? this.sanitizeKey(currentKey) : 'none',
-        });
+        }, `Streaming request failed (attempt ${attempt + 1}/${settings.MAX_RETRIES}):`);
 
         // Don't retry on certain errors
         if (error.response?.status === HTTP_STATUS_CODES.BAD_REQUEST || 

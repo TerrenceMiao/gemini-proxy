@@ -56,7 +56,7 @@ export default async function openaiRoutes(fastify: FastifyInstance) {
       return reply.send(openaiResponse);
 
     } catch (error) {
-      logger.error('Failed to process chat completions:', error);
+      logger.error({ err: error }, 'Failed to process chat completions:');
       throw error;
     }
   });
@@ -84,7 +84,7 @@ export default async function openaiRoutes(fastify: FastifyInstance) {
       });
 
     } catch (error) {
-      logger.error('Failed to get OpenAI models list:', error);
+      logger.error({ err: error }, 'Failed to get OpenAI models list:');
       throw error;
     }
   });
@@ -114,7 +114,7 @@ export default async function openaiRoutes(fastify: FastifyInstance) {
       });
 
     } catch (error) {
-      logger.error('Failed to get OpenAI model info:', error);
+      logger.error({ err: error }, 'Failed to get OpenAI model info:');
       throw error;
     }
   });
@@ -138,7 +138,7 @@ export default async function openaiRoutes(fastify: FastifyInstance) {
       return reply.send(audioBuffer);
 
     } catch (error) {
-      logger.error('Failed to process TTS request:', error);
+      logger.error({ err: error }, 'Failed to process TTS request:');
       throw error;
     }
   });
@@ -174,7 +174,7 @@ export default async function openaiRoutes(fastify: FastifyInstance) {
       });
 
     } catch (error) {
-      logger.error('Failed to process embeddings request:', error);
+      logger.error({ err: error }, 'Failed to process embeddings request:');
       throw error;
     }
   });
@@ -287,7 +287,7 @@ async function handleStreamingChat(geminiRequest: any, reply: FastifyReply) {
     reply.raw.end();
 
   } catch (error) {
-    logger.error('Failed to handle streaming chat:', error);
+    logger.error({ err: error }, 'Failed to handle streaming chat:');
     reply.raw.write(`data: ${JSON.stringify({ error: (error as Error).message })}\n\n`);
     reply.raw.end();
   }

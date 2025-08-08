@@ -47,7 +47,7 @@ export default async function geminiRoutes(fastify: FastifyInstance) {
       });
 
     } catch (error) {
-      logger.error('Failed to get model info:', error);
+      logger.error({ err: error }, 'Failed to get model info:');
       throw error;
     }
   });
@@ -77,7 +77,7 @@ export default async function geminiRoutes(fastify: FastifyInstance) {
       return reply.send(response);
 
     } catch (error) {
-      logger.error('Failed to generate content:', error);
+      logger.error({ err: error }, 'Failed to generate content:');
       throw error;
     }
   });
@@ -113,7 +113,7 @@ export default async function geminiRoutes(fastify: FastifyInstance) {
       reply.raw.end();
 
     } catch (error) {
-      logger.error('Failed to stream generate content:', error);
+      logger.error({ err: error }, 'Failed to stream generate content:');
       reply.raw.write(`data: ${JSON.stringify({ error: (error as Error).message })}\n\n`);
       reply.raw.end();
     }
@@ -139,7 +139,7 @@ export default async function geminiRoutes(fastify: FastifyInstance) {
       });
 
     } catch (error) {
-      logger.error('Failed to get models list:', error);
+      logger.error({ err: error }, 'Failed to get models list:');
       throw error;
     }
   });
@@ -165,7 +165,7 @@ export default async function geminiRoutes(fastify: FastifyInstance) {
       });
 
     } catch (error) {
-      logger.error('Failed to embed content:', error);
+      logger.error({ err: error }, 'Failed to embed content:');
       throw error;
     }
   });
@@ -189,7 +189,7 @@ export default async function geminiRoutes(fastify: FastifyInstance) {
       });
 
     } catch (error) {
-      logger.error('Failed to count tokens:', error);
+      logger.error({ err: error }, 'Failed to count tokens:');
       throw error;
     }
   });
@@ -231,7 +231,7 @@ async function handleTTSRequest(modelId: string, body: GeminiRequestBody, reply:
     });
 
   } catch (error) {
-    logger.error('Failed to handle TTS request:', error);
+    logger.error({ err: error }, 'Failed to handle TTS request:');
     throw error;
   }
 }

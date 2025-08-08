@@ -20,7 +20,7 @@ export async function responseLoggingMiddleware(
     const endTime = Date.now();
     const duration = endTime - startTime;
     
-    logger.info(`Request completed: ${request.method} ${request.url}`, {
+    logger.info({
       method: request.method,
       url: request.url,
       statusCode: reply.statusCode,
@@ -28,6 +28,6 @@ export async function responseLoggingMiddleware(
       clientIp,
       userAgent,
       requestId: request.id,
-    });
+    }, `Request completed: ${request.method} ${request.url}`);
   }
 } 

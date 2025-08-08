@@ -34,11 +34,11 @@ export interface GeminiTTSRequest {
 export class TTSService {
   async generateSpeech(request: TTSRequest): Promise<TTSResponse> {
     try {
-      logger.info('Generating speech', {
+      logger.info({
         model: request.model,
         voice: request.voice,
         inputLength: request.input.length,
-      });
+      }, 'Generating speech');
 
       // Convert OpenAI-style TTS request to Gemini format
       const geminiRequest: GeminiTTSRequest = {
@@ -64,26 +64,26 @@ export class TTSService {
       // Extract audio data from response
       const audioData = this.extractAudioFromResponse(response);
 
-      logger.info('Speech generation completed', {
+      logger.info({
         model: request.model,
         audioSize: audioData.size,
-      });
+      }, 'Speech generation completed');
 
       return audioData;
 
     } catch (error) {
-      logger.error('Speech generation failed:', error);
+      logger.error({ err: error }, 'Speech generation failed:');
       throw new ExternalServiceError('Failed to generate speech');
     }
   }
 
   async *generateSpeechStream(request: TTSRequest): AsyncGenerator<Buffer, void, unknown> {
     try {
-      logger.info('Generating streaming speech', {
+      logger.info({
         model: request.model,
         voice: request.voice,
         inputLength: request.input.length,
-      });
+      }, 'Generating streaming speech');
 
       // Convert OpenAI-style TTS request to Gemini format
       const geminiRequest: GeminiTTSRequest = {
@@ -113,12 +113,12 @@ export class TTSService {
         }
       }
 
-      logger.info('Streaming speech generation completed', {
+      logger.info({
         model: request.model,
-      });
+      }, 'Streaming speech generation completed');
 
     } catch (error) {
-      logger.error('Streaming speech generation failed:', error);
+      logger.error({ err: error }, 'Streaming speech generation failed:');
       throw new ExternalServiceError('Failed to generate streaming speech');
     }
   }

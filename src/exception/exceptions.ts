@@ -78,13 +78,13 @@ export function setupExceptionHandlers(app: FastifyInstance): void {
     const requestId = request.id;
     
     // Log the error
-    logger.error(`Error ${requestId}: ${error.message}`, {
-      error: error.stack,
+    logger.error({
+      err: error,
       url: request.url,
       method: request.method,
       body: request.body,
       headers: request.headers,
-    });
+    }, `Error ${requestId}: ${error.message}`);
 
     // Handle known application errors
     if (error instanceof AppError) {

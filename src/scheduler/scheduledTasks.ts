@@ -23,7 +23,7 @@ export function startScheduler(): void {
       // TODO: Implement key health check
       // await checkKeyHealth();
     } catch (error) {
-      logger.error('Error in key health check task:', error);
+      logger.error({ err: error }, 'Error in key health check task:');
     }
   });
 
@@ -35,7 +35,7 @@ export function startScheduler(): void {
       // TODO: Implement log cleanup
       // await cleanupOldLogs();
     } catch (error) {
-      logger.error('Error in log cleanup task:', error);
+      logger.error({ err: error }, 'Error in log cleanup task:');
     }
   });
 

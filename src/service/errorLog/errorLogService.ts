@@ -47,14 +47,14 @@ export class ErrorLogService {
 
       await databaseService.createErrorLog(data);
 
-      logger.debug('Error log created', {
+      logger.debug({
         errorType: data.errorType,
         errorCode: data.errorCode,
         modelName: data.modelName,
-      });
+      }, 'Error log created');
 
     } catch (error) {
-      logger.error('Failed to create error log:', error);
+      logger.error({ err: error }, 'Failed to create error log:');
     }
   }
 
@@ -92,7 +92,7 @@ export class ErrorLogService {
       }));
 
     } catch (error) {
-      logger.error('Failed to get error logs:', error);
+      logger.error({ err: error }, 'Failed to get error logs:');
       return [];
     }
   }
@@ -137,7 +137,7 @@ export class ErrorLogService {
       return stats;
 
     } catch (error) {
-      logger.error('Failed to get error log stats:', error);
+      logger.error({ err: error }, 'Failed to get error log stats:');
       return {
         totalErrors: 0,
         errorsByType: {},
@@ -169,7 +169,7 @@ export class ErrorLogService {
       };
 
     } catch (error) {
-      logger.error('Failed to get error log by ID:', error);
+      logger.error({ err: error }, 'Failed to get error log by ID:');
       return null;
     }
   }
@@ -186,7 +186,7 @@ export class ErrorLogService {
       return deletedCount;
 
     } catch (error) {
-      logger.error('Failed to delete old error logs:', error);
+      logger.error({ err: error }, 'Failed to delete old error logs:');
       return 0;
     }
   }
@@ -221,7 +221,7 @@ export class ErrorLogService {
         .sort((a, b) => a.time.localeCompare(b.time));
 
     } catch (error) {
-      logger.error('Failed to get errors by time range:', error);
+      logger.error({ err: error }, 'Failed to get errors by time range:');
       return [];
     }
   }
@@ -249,7 +249,7 @@ export class ErrorLogService {
         .slice(0, limit);
 
     } catch (error) {
-      logger.error('Failed to get top errors:', error);
+      logger.error({ err: error }, 'Failed to get top errors:');
       return [];
     }
   }
@@ -279,7 +279,7 @@ export class ErrorLogService {
       return trends;
 
     } catch (error) {
-      logger.error('Failed to get error trends:', error);
+      logger.error({ err: error }, 'Failed to get error trends:');
       return [];
     }
   }
@@ -291,7 +291,7 @@ export class ErrorLogService {
       return 0;
 
     } catch (error) {
-      logger.error('Failed to clear all error logs:', error);
+      logger.error({ err: error }, 'Failed to clear all error logs:');
       return 0;
     }
   }

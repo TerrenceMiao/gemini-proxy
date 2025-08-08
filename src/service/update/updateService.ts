@@ -24,10 +24,10 @@ export async function checkForUpdates(): Promise<UpdateInfo> {
       errorMessage: null,
     };
     
-    logger.debug('Update check completed', updateInfo);
+    logger.debug(updateInfo, 'Update check completed');
     return updateInfo;
   } catch (error) {
-    logger.error('Failed to check for updates:', error);
+    logger.error({ err: error }, 'Failed to check for updates:');
     
     return {
       updateAvailable: false,

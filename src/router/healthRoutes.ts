@@ -21,7 +21,7 @@ export default async function healthRoutes(fastify: FastifyInstance) {
       return reply.send(health);
 
     } catch (error) {
-      logger.error('Health check failed:', error);
+      logger.error({ err: error }, 'Health check failed:');
       return reply.status(503).send({
         status: 'unhealthy',
         timestamp: new Date().toISOString(),
@@ -46,7 +46,7 @@ export default async function healthRoutes(fastify: FastifyInstance) {
       } catch (error) {
         dbStatus = 'unhealthy';
         dbResponseTime = Date.now() - dbStart;
-        logger.error('Database health check failed:', error);
+        logger.error({ err: error }, 'Database health check failed:');
       }
 
       // Check API keys
@@ -67,7 +67,7 @@ export default async function healthRoutes(fastify: FastifyInstance) {
       } catch (error) {
         keysStatus = 'unhealthy';
         keysResponseTime = Date.now() - keysStart;
-        logger.error('Keys health check failed:', error);
+        logger.error({ err: error }, 'Keys health check failed:');
       }
 
       // Memory usage
@@ -113,7 +113,7 @@ export default async function healthRoutes(fastify: FastifyInstance) {
       return reply.status(statusCode).send(health);
 
     } catch (error) {
-      logger.error('Detailed health check failed:', error);
+      logger.error({ err: error }, 'Detailed health check failed:');
       return reply.status(503).send({
         status: 'unhealthy',
         timestamp: new Date().toISOString(),
@@ -145,7 +145,7 @@ export default async function healthRoutes(fastify: FastifyInstance) {
       });
 
     } catch (error) {
-      logger.error('Readiness check failed:', error);
+      logger.error({ err: error }, 'Readiness check failed:');
       return reply.status(503).send({
         status: 'not ready',
         reason: (error as Error).message,
@@ -166,7 +166,7 @@ export default async function healthRoutes(fastify: FastifyInstance) {
       });
 
     } catch (error) {
-      logger.error('Liveness check failed:', error);
+      logger.error({ err: error }, 'Liveness check failed:');
       return reply.status(503).send({
         status: 'dead',
         timestamp: new Date().toISOString(),

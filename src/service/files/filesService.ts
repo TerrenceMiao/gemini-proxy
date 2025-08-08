@@ -61,7 +61,7 @@ export class FilesService {
     try {
       await fs.mkdir(this.uploadDir, { recursive: true });
     } catch (error) {
-      logger.error('Failed to create upload directory:', error);
+      logger.error({ err: error }, 'Failed to create upload directory:');
     }
   }
 
@@ -90,12 +90,12 @@ export class FilesService {
         provider: settings.UPLOAD_HANDLER,
       });
 
-      logger.info('File uploaded successfully', {
+      logger.info({
         filename,
         originalName: request.originalName,
         size: request.size,
         provider: settings.UPLOAD_HANDLER,
-      });
+      }, 'File uploaded successfully');
 
       return {
         id: fileRecord.id,
@@ -109,7 +109,7 @@ export class FilesService {
       };
 
     } catch (error) {
-      logger.error('File upload failed:', error);
+      logger.error({ err: error }, 'File upload failed:');
       throw error;
     }
   }
@@ -134,7 +134,7 @@ export class FilesService {
       };
 
     } catch (error) {
-      logger.error('Failed to get file:', error);
+      logger.error({ err: error }, 'Failed to get file:');
       return null;
     }
   }
@@ -151,7 +151,7 @@ export class FilesService {
       return await fs.readFile(filePath);
 
     } catch (error) {
-      logger.error('Failed to download file:', error);
+      logger.error({ err: error }, 'Failed to download file:');
       return null;
     }
   }
@@ -169,18 +169,18 @@ export class FilesService {
       try {
         await fs.unlink(filePath);
       } catch (error) {
-        logger.warn('Failed to delete file from disk:', error);
+        logger.warn({ err: error }, 'Failed to delete file from disk:');
       }
 
       // Delete from database
       // Note: This would need to be implemented in the database service
       // await databaseService.deleteFileUpload(id);
 
-      logger.info('File deleted successfully', { id, filename: fileInfo.filename });
+      logger.info({ id, filename: fileInfo.filename }, 'File deleted successfully');
       return true;
 
     } catch (error) {
-      logger.error('Failed to delete file:', error);
+      logger.error({ err: error }, 'Failed to delete file:');
       return false;
     }
   }
@@ -204,7 +204,7 @@ export class FilesService {
       };
 
     } catch (error) {
-      logger.error('Failed to process file for Gemini:', error);
+      logger.error({ err: error }, 'Failed to process file for Gemini:');
       throw error;
     }
   }
@@ -302,7 +302,7 @@ export class FilesService {
         averageSize: 0,
       };
     } catch (error) {
-      logger.error('Failed to get file stats:', error);
+      logger.error({ err: error }, 'Failed to get file stats:');
       return {
         totalFiles: 0,
         totalSize: 0,

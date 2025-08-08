@@ -28,7 +28,7 @@ export async function initializeDatabase(): Promise<void> {
     // This would typically be done via prisma migrate or prisma db push
     logger.info('Database initialization completed');
   } catch (error) {
-    logger.error('Failed to initialize database:', error);
+    logger.error({ err: error }, 'Failed to initialize database:');
     throw error;
   }
 }
@@ -42,7 +42,7 @@ export async function disconnectDatabase(): Promise<void> {
       logger.info('No database connection to disconnect');
     }
   } catch (error) {
-    logger.error('Failed to disconnect from database:', error);
+    logger.error({ err: error }, 'Failed to disconnect from database:');
     throw error;
   }
 }

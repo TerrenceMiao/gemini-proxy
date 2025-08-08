@@ -56,15 +56,15 @@ export class ApiClient {
     // Request interceptor
     instance.interceptors.request.use(
       (config) => {
-        logger.debug(`Making request to ${config.url}`, {
+        logger.debug({
           method: config.method,
           url: config.url,
           headers: this.sanitizeHeaders(config.headers),
-        });
+        }, `Making request to ${config.url}`);
         return config;
       },
       (error) => {
-        logger.error('Request interceptor error:', error);
+        logger.error({ err: error }, 'Request interceptor error:');
         return Promise.reject(error);
       }
     );
@@ -72,19 +72,19 @@ export class ApiClient {
     // Response interceptor
     instance.interceptors.response.use(
       (response) => {
-        logger.debug(`Response received from ${response.config.url}`, {
+        logger.debug({
           status: response.status,
           statusText: response.statusText,
-        });
+        }, `Response received from ${response.config.url}`);
         return response;
       },
       (error) => {
-        logger.error('Response interceptor error:', {
+        logger.error({
           message: error.message,
           status: error.response?.status,
           statusText: error.response?.statusText,
           url: error.config?.url,
-        });
+        }, 'Response interceptor error:');
         return Promise.reject(error);
       }
     );
@@ -159,7 +159,7 @@ export class ApiClient {
       data: error.response?.data,
     };
 
-    logger.error(`API request failed: ${method} ${url}`, errorInfo);
+    logger.error(errorInfo, `API request failed: ${method} ${url}`);
 
     // Transform axios errors to our custom errors
     if (error.response) {

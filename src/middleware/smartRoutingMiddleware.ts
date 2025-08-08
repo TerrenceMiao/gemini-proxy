@@ -16,13 +16,13 @@ export async function smartRoutingMiddleware(
   (request as any).timestamp = new Date();
 
   // Log route matching
-  logger.debug(`Route matched: ${request.method} ${request.url}`, {
+  logger.debug({
     method: request.method,
     url: request.url,
     params: request.params,
     query: request.query,
     requestId: request.id,
-  });
+  }, `Route matched: ${request.method} ${request.url}`);
 
   // Here you can add intelligent routing logic
   // For example, detecting TTS requests, model-specific routing, etc.
@@ -32,14 +32,14 @@ export async function smartRoutingMiddleware(
     const body = request.body as any;
     if (body.responseModalities?.includes('AUDIO')) {
       (request as any).isTTSRequest = true;
-      logger.debug('TTS request detected', { requestId: request.id });
+      logger.debug({ requestId: request.id }, 'TTS request detected');
     }
   }
 
   // Detect image generation requests
   if (request.url.includes('generateImage') || request.url.includes('image')) {
     (request as any).isImageRequest = true;
-    logger.debug('Image request detected', { requestId: request.id });
+    logger.debug({ requestId: request.id }, 'Image request detected');
   }
 
   // Add more intelligent routing logic as needed
