@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { getRouterLogger } from '@/log/logger';
-import geminiRoutes from './geminiRoutes';
+// import geminiRoutes from './geminiRoutes';
 import openaiRoutes from './openaiRoutes';
 import healthRoutes from './healthRoutes';
 
@@ -13,7 +13,7 @@ export function setupRouters(app: FastifyInstance): void {
   app.register(healthRoutes);
 
   // Register API routes
-  app.register(geminiRoutes, { prefix: '/v1beta' });
+  // app.register(geminiRoutes, { prefix: '/v1beta' });
   app.register(openaiRoutes, { prefix: '/v1' });
   // app.register(errorLogRoutes, { prefix: '/error-logs' });
   // app.register(keyRoutes, { prefix: '/keys' });

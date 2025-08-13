@@ -54,7 +54,7 @@ export default async function geminiRoutes(fastify: FastifyInstance) {
 
   // Generate content
   fastify.post('/models/:modelId:generateContent', async (request: FastifyRequest<{
-    Params: { modelId: string; generateContent: string };
+    Params: { modelId: string };
     Body: GeminiRequestBody;
   }>, reply: FastifyReply) => {
     try {
@@ -84,7 +84,7 @@ export default async function geminiRoutes(fastify: FastifyInstance) {
 
   // Stream generate content
   fastify.post('/models/:modelId:streamGenerateContent', async (request: FastifyRequest<{
-    Params: { modelId: string; streamGenerateContent: string };
+    Params: { modelId: string };
     Body: GeminiRequestBody;
   }>, reply: FastifyReply) => {
     try {
@@ -146,7 +146,7 @@ export default async function geminiRoutes(fastify: FastifyInstance) {
 
   // Embed content
   fastify.post('/models/:modelId:embedContent', async (request: FastifyRequest<{
-    Params: { modelId: string; embedContent: string };
+    Params: { modelId: string };
     Body: { content: any };
   }>, reply: FastifyReply) => {
     try {
@@ -172,7 +172,7 @@ export default async function geminiRoutes(fastify: FastifyInstance) {
 
   // Count tokens
   fastify.post('/models/:modelId:countTokens', async (request: FastifyRequest<{
-    Params: { modelId: string; countTokens: string };
+    Params: { modelId: string };
     Body: { contents: any[] };
   }>, reply: FastifyReply) => {
     try {
