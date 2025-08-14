@@ -52,28 +52,21 @@ export default async function geminiRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // Unified endpoint for all model operations
+  // Unified endpoint for all model operations e.g.:
+  //  /models/gemini-2.5-pro:streamGenerateContent?alt=sse
+  //  /models/gemini-2.5-flash-lite:generateContent
+  //  /models/gemini-2.5-pro:countTokens
   fastify.post('/models/*', async (request: FastifyRequest<{
     Params: { '*': string };
+    Querystring: Record<string, string>;
     Body: GeminiRequestBody & { content?: any; contents?: any[] };
   }>, reply: FastifyReply) => {
     try {
-      const fullPath = request.params['*'];
-      const colonIndex = fullPath.indexOf(':');
-      
-      if (colonIndex === -1) {
-        throw new AppError('Invalid request format. Expected format: modelId:operation', HTTP_STATUS_CODES.BAD_REQUEST);
-      }
-      
-      const modelId = fullPath.substring(0, colonIndex);
-      const operationWithQuery = fullPath.substring(colonIndex + 1);
-      
-      // Remove query parameters from operation (e.g., 'streamGenerateContent?alt=sse' -> 'streamGenerateContent')
-      const queryIndex = operationWithQuery.indexOf('?');
-      const operation = queryIndex === -1 ? operationWithQuery : operationWithQuery.substring(0, queryIndex);
       const body = request.body;
       
-      logger.info(`${operation} request for model: ${modelId}`);
+      const { modelId, operation } = parseModelRequest(request.params['*']);
+      const queryParams = request.query || {};
+      logger.info(`${operation} request for model: ${modelId} with query params: ` + JSON.stringify(queryParams));
       
       switch (operation) {
         case 'generateContent':
@@ -212,6 +205,30 @@ async function handleTTSRequest(modelId: string, body: GeminiRequestBody, reply:
     logger.error({ err: error }, 'Failed to handle TTS request:');
     throw error;
   }
+}
+
+function parseModelRequest(params: string): { modelId: string; operation: string } {
+  const colonIndex = params.indexOf(':');
+  
+  if (colonIndex === -1) {
+    throw new AppError('Invalid request format. Expected format: modelId:operation', HTTP_STATUS_CODES.BAD_REQUEST);
+  }
+  
+  const modelId = params.substring(0, colonIndex);
+  const operation = params.substring(colonIndex + 1);
+  
+  // Validate model ID format
+  if (!modelId || modelId.trim() === '') {
+    throw new AppError('Model ID cannot be empty', HTTP_STATUS_CODES.BAD_REQUEST);
+  }
+  
+  // Validate operation
+  const validOperations = ['generateContent', 'streamGenerateContent', 'embedContent', 'countTokens'];
+  if (!validOperations.includes(operation)) {
+    throw new AppError(`Unsupported operation: ${operation}. Valid operations: ${validOperations.join(', ')}`, HTTP_STATUS_CODES.BAD_REQUEST);
+  }
+  
+  return { modelId, operation };
 }
 
 function extractTextFromContents(contents: any[]): string {
