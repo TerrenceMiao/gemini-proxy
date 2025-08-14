@@ -1,8 +1,21 @@
 import { PrismaClient } from '@prisma/client';
 import { getDatabaseLogger } from '@/log/logger';
+import settings from '@/config/config';
 
 const logger = getDatabaseLogger();
-const prisma = new PrismaClient();
+
+const { MYSQL_USER, MYSQL_PASSWORD, MYSQL_HOST, MYSQL_PORT, MYSQL_DATABASE } = settings;
+const databaseUrl = `mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@${MYSQL_HOST}:${MYSQL_PORT}/${MYSQL_DATABASE}`;
+
+logger.info(`Connecting database at mysql://${MYSQL_USER}:xxxxxxxx@${MYSQL_HOST}:${MYSQL_PORT}/${MYSQL_DATABASE}`);
+
+const prisma = new PrismaClient({
+  datasources: {
+    db: {
+      url: databaseUrl
+    }
+  }
+});
 
 export class DatabaseService {
   // Settings operations
