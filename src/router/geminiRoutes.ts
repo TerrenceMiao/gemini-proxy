@@ -52,70 +52,97 @@ export default async function geminiRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // Generate content
-  fastify.post('/models/:modelId:generateContent', async (request: FastifyRequest<{
-    Params: { modelId: string };
-    Body: GeminiRequestBody;
+  // Unified endpoint for all model operations
+  fastify.post('/models/*', async (request: FastifyRequest<{
+    Params: { '*': string };
+    Body: GeminiRequestBody & { content?: any; contents?: any[] };
   }>, reply: FastifyReply) => {
     try {
-      const { modelId } = request.params;
+      const fullPath = request.params['*'];
+      const colonIndex = fullPath.indexOf(':');
+      
+      if (colonIndex === -1) {
+        throw new AppError('Invalid request format. Expected format: modelId:operation', HTTP_STATUS_CODES.BAD_REQUEST);
+      }
+      
+      const modelId = fullPath.substring(0, colonIndex);
+      const operationWithQuery = fullPath.substring(colonIndex + 1);
+      
+      // Remove query parameters from operation (e.g., 'streamGenerateContent?alt=sse' -> 'streamGenerateContent')
+      const queryIndex = operationWithQuery.indexOf('?');
+      const operation = queryIndex === -1 ? operationWithQuery : operationWithQuery.substring(0, queryIndex);
       const body = request.body;
       
-      logger.info(`Generate content request for model: ${modelId}`);
+      logger.info(`${operation} request for model: ${modelId}`);
       
-      // Check if this is a TTS request
-      if (ttsService.isTTSRequest(body)) {
-        return await handleTTSRequest(modelId, body, reply);
+      switch (operation) {
+        case 'generateContent':
+          // Check if this is a TTS request
+          if (ttsService.isTTSRequest(body)) {
+            return await handleTTSRequest(modelId, body, reply);
+          }
+
+          // Regular chat request
+          const response = await geminiChatService.generateContent({
+            model: modelId,
+            ...body,
+          });
+
+          return reply.send(response);
+
+        case 'streamGenerateContent':
+          // Set up streaming response
+          reply.type('text/event-stream');
+          reply.header('Cache-Control', 'no-cache');
+          reply.header('Connection', 'keep-alive');
+          reply.header('Access-Control-Allow-Origin', '*');
+          reply.header('Access-Control-Allow-Headers', 'Cache-Control');
+
+          const streamGenerator = geminiChatService.streamGenerateContent({
+            model: modelId,
+            ...body,
+          });
+
+          for await (const chunk of streamGenerator) {
+            reply.raw.write(`data: ${JSON.stringify(chunk)}\n\n`);
+          }
+
+          reply.raw.write('data: [DONE]\n\n');
+          reply.raw.end();
+          break;
+
+        case 'embedContent':
+          // TODO: Implement embedding service
+          logger.warn('Embedding service not implemented yet');
+          
+          return reply.send({
+            embedding: {
+              values: [],
+            },
+          });
+
+        case 'countTokens':
+          // TODO: Implement token counting
+          logger.warn('Token counting not implemented yet');
+          
+          return reply.send({
+            totalTokens: 0,
+          });
+
+        default:
+          throw new AppError(`Unsupported operation: ${operation}`, HTTP_STATUS_CODES.NOT_FOUND);
       }
 
-      // Regular chat request
-      const response = await geminiChatService.generateContent({
-        model: modelId,
-        ...body,
-      });
-
-      return reply.send(response);
-
     } catch (error) {
-      logger.error({ err: error }, 'Failed to generate content:');
-      throw error;
-    }
-  });
-
-  // Stream generate content
-  fastify.post('/models/:modelId:streamGenerateContent', async (request: FastifyRequest<{
-    Params: { modelId: string };
-    Body: GeminiRequestBody;
-  }>, reply: FastifyReply) => {
-    try {
-      const { modelId } = request.params;
-      const body = request.body;
+      logger.error({ err: error }, `Failed to handle ${request.params['*']} request:`);
       
-      logger.info(`Stream generate content request for model: ${modelId}`);
-      
-      // Set up streaming response
-      reply.type('text/event-stream');
-      reply.header('Cache-Control', 'no-cache');
-      reply.header('Connection', 'keep-alive');
-      reply.header('Access-Control-Allow-Origin', '*');
-      reply.header('Access-Control-Allow-Headers', 'Cache-Control');
-
-      const streamGenerator = geminiChatService.streamGenerateContent({
-        model: modelId,
-        ...body,
-      });
-
-      for await (const chunk of streamGenerator) {
-        reply.raw.write(`data: ${JSON.stringify(chunk)}\n\n`);
+      // Handle streaming errors differently
+      if (request.params['*'] === 'streamGenerateContent') {
+        reply.raw.write(`data: ${JSON.stringify({ error: (error as Error).message })}\n\n`);
+        reply.raw.end();
+      } else {
+        throw error;
       }
-
-      reply.raw.write('data: [DONE]\n\n');
-      reply.raw.end();
-
-    } catch (error) {
-      logger.error({ err: error }, 'Failed to stream generate content:');
-      reply.raw.write(`data: ${JSON.stringify({ error: (error as Error).message })}\n\n`);
-      reply.raw.end();
     }
   });
 
@@ -144,55 +171,6 @@ export default async function geminiRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // Embed content
-  fastify.post('/models/:modelId:embedContent', async (request: FastifyRequest<{
-    Params: { modelId: string };
-    Body: { content: any };
-  }>, reply: FastifyReply) => {
-    try {
-      const { modelId } = request.params;
-      const { content: _content } = request.body;
-      
-      logger.info(`Embed content request for model: ${modelId}`);
-      
-      // TODO: Implement embedding service
-      logger.warn('Embedding service not implemented yet');
-      
-      return reply.send({
-        embedding: {
-          values: [],
-        },
-      });
-
-    } catch (error) {
-      logger.error({ err: error }, 'Failed to embed content:');
-      throw error;
-    }
-  });
-
-  // Count tokens
-  fastify.post('/models/:modelId:countTokens', async (request: FastifyRequest<{
-    Params: { modelId: string };
-    Body: { contents: any[] };
-  }>, reply: FastifyReply) => {
-    try {
-      const { modelId } = request.params;
-      const { contents: _contents } = request.body;
-      
-      logger.info(`Count tokens request for model: ${modelId}`);
-      
-      // TODO: Implement token counting
-      logger.warn('Token counting not implemented yet');
-      
-      return reply.send({
-        totalTokens: 0,
-      });
-
-    } catch (error) {
-      logger.error({ err: error }, 'Failed to count tokens:');
-      throw error;
-    }
-  });
 }
 
 async function handleTTSRequest(modelId: string, body: GeminiRequestBody, reply: FastifyReply) {
