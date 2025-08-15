@@ -9,7 +9,15 @@
     "start": "node dist/main.js",
     "test": "jest",
     "lint": "eslint src --ext .ts",
-    "format": "prettier --write src/**/*.ts"
+    "format": "prettier --write src/**/*.ts",
+    "db:migrate": "ts-node -r tsconfig-paths/register src/database/migrate.ts migrate",
+    "db:migrate:prod": "ts-node -r tsconfig-paths/register src/database/migrate.ts migrate --prod",
+    "db:migrate:create": "ts-node -r tsconfig-paths/register src/database/migrate.ts create",
+    "db:reset": "ts-node -r tsconfig-paths/register src/database/migrate.ts reset",
+    "db:validate": "ts-node -r tsconfig-paths/register src/database/migrate.ts validate",
+    "db:push": "npx prisma db push",
+    "db:generate": "npx prisma generate",
+    "db:studio": "npx prisma studio"
   },
   "keywords": [
     "gemini",
