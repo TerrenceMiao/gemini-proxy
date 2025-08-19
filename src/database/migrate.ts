@@ -19,23 +19,27 @@ export interface MigrationOptions {
   environment?: 'development' | 'production' | 'test';
 }
 
+function set_database_url(): void {
+  const { MYSQL_USER, MYSQL_PASSWORD, MYSQL_HOST, MYSQL_PORT, MYSQL_DATABASE } = settings;
+  const databaseUrl = `mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@${MYSQL_HOST}:${MYSQL_PORT}/${MYSQL_DATABASE}`;
+
+  logger.info(`Connecting to database mysql://${MYSQL_USER}:xxxxxxxx@${MYSQL_HOST}:${MYSQL_PORT}/${MYSQL_DATABASE}`);
+
+  // Set DATABASE_URL environment variable for Prisma
+  process.env['DATABASE_URL'] = databaseUrl;
+
+  if (!process.env['DATABASE_URL']) {
+    throw new Error('DATABASE_URL environment variable is not set');
+  }
+}
+
 export async function runMigrations(options: MigrationOptions = {}): Promise<void> {
   const { force = false, acceptDataLoss = false, environment = process.env['NODE_ENV'] as any || 'development' } = options;
 
   try {
+    set_database_url();
+
     logger.info(`Running database migrations for ${environment} environment...`);
-
-    const { MYSQL_USER, MYSQL_PASSWORD, MYSQL_HOST, MYSQL_PORT, MYSQL_DATABASE } = settings;
-    const databaseUrl = `mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@${MYSQL_HOST}:${MYSQL_PORT}/${MYSQL_DATABASE}`;
-
-    logger.info(`Migrating database with connection to mysql://${MYSQL_USER}:xxxxxxxx@${MYSQL_HOST}:${MYSQL_PORT}/${MYSQL_DATABASE}`);
-
-    // Set DATABASE_URL environment variable for Prisma
-    process.env['DATABASE_URL'] = databaseUrl;
-
-    if (!process.env['DATABASE_URL']) {
-      throw new Error('DATABASE_URL environment variable is not set');
-    }
 
     if (environment === 'development' || force) {
       // Use db push for development or when forced
@@ -74,6 +78,8 @@ export async function runMigrations(options: MigrationOptions = {}): Promise<voi
 
 export async function createMigration(name: string): Promise<void> {
   try {
+    set_database_url();
+
     logger.info(`Creating new migration: ${name}`);
     const result = await execAsync(`npx prisma migrate dev --name ${name}`);
     
@@ -90,6 +96,8 @@ export async function createMigration(name: string): Promise<void> {
 
 export async function resetDatabase(): Promise<void> {
   try {
+    set_database_url();
+
     logger.warn('Resetting database - this will delete all data!');
     const result = await execAsync('npx prisma migrate reset --force');
     
@@ -106,6 +114,8 @@ export async function resetDatabase(): Promise<void> {
 
 export async function validateSchema(): Promise<boolean> {
   try {
+    set_database_url();
+
     logger.info('Validating Prisma schema...');
     const result = await execAsync('npx prisma validate');
     
