@@ -1,5 +1,5 @@
 {
-  "name": "gemini-proxy-ts",
+  "name": "gemini-proxy",
   "version": "2.2.2",
   "description": "Gemini API proxy service with load balancing and key management - TypeScript version",
   "main": "dist/main.js",

@@ -8,6 +8,7 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { getDatabaseLogger } from '@/log/logger';
+import settings from '@/config/config';
 
 const execAsync = promisify(exec) as (command: string) => Promise<{stdout: string; stderr: string}>;
 const logger = getDatabaseLogger();
@@ -24,7 +25,14 @@ export async function runMigrations(options: MigrationOptions = {}): Promise<voi
   try {
     logger.info(`Running database migrations for ${environment} environment...`);
 
-    // Ensure DATABASE_URL is set
+    const { MYSQL_USER, MYSQL_PASSWORD, MYSQL_HOST, MYSQL_PORT, MYSQL_DATABASE } = settings;
+    const databaseUrl = `mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@${MYSQL_HOST}:${MYSQL_PORT}/${MYSQL_DATABASE}`;
+
+    logger.info(`Migrating database with connection to mysql://${MYSQL_USER}:xxxxxxxx@${MYSQL_HOST}:${MYSQL_PORT}/${MYSQL_DATABASE}`);
+
+    // Set DATABASE_URL environment variable for Prisma
+    process.env['DATABASE_URL'] = databaseUrl;
+
     if (!process.env['DATABASE_URL']) {
       throw new Error('DATABASE_URL environment variable is not set');
     }
