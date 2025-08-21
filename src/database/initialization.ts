@@ -56,8 +56,14 @@ async function runDatabaseMigrations(): Promise<void> {
       logger.info('Running prisma db push for development environment...');
       const result = await execAsync('npx prisma db push --accept-data-loss');
       
-      if (result.stderr && !result.stderr.includes('warning') && !result.stderr.includes('error')) {
-        logger.info({ info: result.stderr }, 'Prisma db push messages:');
+      if (result.stderr) {
+        if (result.stderr.includes('warning')) {
+          logger.warn({ warn: result.stderr }, 'Prisma db push warnings:');
+        } else if (result.stderr.includes('error')) {
+          logger.error({ err: result.stderr }, 'Prisma db push errors:');
+        } else {
+          logger.info({ info: result.stderr }, 'Prisma db push messages:');
+        }
       }
       
       logger.info({ result: result.stdout }, 'Prisma db push completed:');
