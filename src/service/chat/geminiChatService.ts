@@ -38,6 +38,98 @@ export class GeminiChatService {
     this.initializeKeyManager();
   }
 
+  async countTokens(payload: GeminiRequest): Promise<{ totalTokens: number }> {
+    const startTime = Date.now();
+    let currentKey: string | null = null;
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt < settings.MAX_RETRIES; attempt++) {
+      try {
+        if (!this.keyManager) {
+          await this.initializeKeyManager();
+        }
+
+        currentKey = this.keyManager.getNextKey();
+        if (!currentKey) {
+          throw new AppError('No available API keys', HTTP_STATUS_CODES.SERVICE_UNAVAILABLE);
+        }
+
+        const model = payload.model || settings.MODEL;
+        const url = `${this.baseUrl}/models/${model}:countTokens`;
+        
+        // For token counting, we only need the contents
+        const requestPayload = { contents: payload.contents || [] };
+
+        const response = await axios.post<{ totalTokens: number }>(url, requestPayload, {
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': currentKey,
+            'User-Agent': settings.USER_AGENT,
+          },
+          timeout: settings.TIMEOUT * 1000,
+        });
+
+        const endTime = Date.now();
+        const responseTime = new Date(endTime);
+
+        // Log successful request
+        if (settings.REQUEST_LOG_ENABLED) {
+          await databaseService.createRequestLog({
+            geminiKey: this.sanitizeKey(currentKey),
+            modelName: model,
+            requestType: 'count_tokens',
+            requestMsg: requestPayload,
+            responseMsg: response.data,
+            responseTime,
+          });
+        }
+
+        logger.info({
+          model,
+          key: this.sanitizeKey(currentKey),
+          totalTokens: response.data.totalTokens,
+        }, `Token count successful in ${endTime - startTime}ms`);
+
+        return response.data;
+
+      } catch (error: any) {
+        lastError = error;
+        
+        if (currentKey) {
+          this.keyManager.markKeyAsFailed(currentKey);
+          
+          // Log error
+          if (settings.ERROR_LOG_ENABLED) {
+            await databaseService.createErrorLog({
+              geminiKey: this.sanitizeKey(currentKey),
+              modelName: payload.model || settings.MODEL,
+              errorType: 'gemini-count-tokens',
+              errorLog: error.message,
+              errorCode: error.response?.status,
+              requestMsg: payload,
+            });
+          }
+        }
+
+        logger.error({
+          error: error.message,
+          status: error.response?.status,
+          key: currentKey ? this.sanitizeKey(currentKey) : 'none',
+        }, `Token count failed (attempt ${attempt + 1}/${settings.MAX_RETRIES}):`);
+
+        // Don't retry on certain errors
+        if (error.response?.status === HTTP_STATUS_CODES.BAD_REQUEST || 
+            error.response?.status === HTTP_STATUS_CODES.UNAUTHORIZED) {
+          break;
+        }
+      }
+    }
+
+    throw new ExternalServiceError(
+      lastError?.message || 'Failed to count tokens after all retries'
+    );
+  }
+
   private async initializeKeyManager(): Promise<void> {
     this.keyManager = await getKeyManagerInstance();
   }

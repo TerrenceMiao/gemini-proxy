@@ -115,12 +115,12 @@ export default async function geminiRoutes(fastify: FastifyInstance) {
           });
 
         case 'countTokens':
-          // TODO: Implement token counting
-          logger.warn('Token counting not implemented yet');
-          
-          return reply.send({
-            totalTokens: 0,
+          const tokenCount = await geminiChatService.countTokens({
+            model: modelId,
+            ...body,
           });
+          
+          return reply.send(tokenCount);
 
         default:
           throw new AppError(`Unsupported operation: ${operation}`, HTTP_STATUS_CODES.NOT_FOUND);
