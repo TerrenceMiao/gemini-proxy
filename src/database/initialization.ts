@@ -62,7 +62,7 @@ async function runDatabaseMigrations(): Promise<void> {
         } else if (result.stderr.includes('error')) {
           logger.error({ err: result.stderr }, 'Prisma db push errors:');
         } else {
-          logger.info({ info: result.stderr }, 'Prisma db push messages:');
+          logger.info({ result: result.stderr }, 'Prisma db push messages:');
         }
       }
       
