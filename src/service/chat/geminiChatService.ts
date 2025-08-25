@@ -225,7 +225,7 @@ export class GeminiChatService {
     );
   }
 
-  async *streamGenerateContent(payload: GeminiRequest): AsyncGenerator<GeminiResponse, void, unknown> {
+  async *streamGenerateContent(payload: GeminiRequest, params: any): AsyncGenerator<GeminiResponse, void, unknown> {
     const startTime = Date.now();
     let currentKey: string | null = null;
     let lastError: Error | null = null;
@@ -252,6 +252,7 @@ export class GeminiChatService {
             'X-Goog-Api-Key': currentKey,
             'User-Agent': settings.USER_AGENT,
           },
+          params: params,
           timeout: settings.TIMEOUT * 1000,
           responseType: 'stream',
         });

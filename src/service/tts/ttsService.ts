@@ -104,7 +104,7 @@ export class TTSService {
         } : undefined as any,
       };
 
-      const streamGenerator = geminiChatService.streamGenerateContent(geminiRequest);
+      const streamGenerator = geminiChatService.streamGenerateContent(geminiRequest, {});
 
       for await (const chunk of streamGenerator) {
         const audioChunk = this.extractAudioChunkFromResponse(chunk);

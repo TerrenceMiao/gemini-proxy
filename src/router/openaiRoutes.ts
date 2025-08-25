@@ -276,7 +276,7 @@ async function handleStreamingChat(geminiRequest: any, reply: FastifyReply) {
     reply.header('Access-Control-Allow-Origin', '*');
     reply.header('Access-Control-Allow-Headers', 'Cache-Control');
 
-    const streamGenerator = geminiChatService.streamGenerateContent(geminiRequest);
+    const streamGenerator = geminiChatService.streamGenerateContent(geminiRequest, {});
     
     for await (const chunk of streamGenerator) {
       const openaiChunk = convertGeminiChunkToOpenAI(chunk, geminiRequest.model);

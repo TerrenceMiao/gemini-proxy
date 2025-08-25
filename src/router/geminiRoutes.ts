@@ -65,8 +65,8 @@ export default async function geminiRoutes(fastify: FastifyInstance) {
       const body = request.body;
       
       const { modelId, operation } = parseModelRequest(request.params['*']);
-      const queryParams = request.query || {};
-      logger.info(`${operation} request for model: ${modelId} with query params: ` + JSON.stringify(queryParams));
+      const params = request.query || {};
+      logger.info(`${operation} request for model: ${modelId} with query params: ` + JSON.stringify(params));
       
       switch (operation) {
         case 'generateContent':
@@ -84,7 +84,7 @@ export default async function geminiRoutes(fastify: FastifyInstance) {
           return reply.send(response);
 
         case 'streamGenerateContent':
-          return await handleStreamGenerateContent(modelId, body, reply);
+          return await handleStreamGenerateContent(modelId, body, params, reply);
 
         case 'embedContent':
           // TODO: Implement embedding service
@@ -148,7 +148,7 @@ export default async function geminiRoutes(fastify: FastifyInstance) {
 
 }
 
-async function handleStreamGenerateContent(modelId: string, body: GeminiRequestBody, reply: FastifyReply) {
+async function handleStreamGenerateContent(modelId: string, body: GeminiRequestBody, params: any, reply: FastifyReply) {
   const operationName = 'gemini_stream_generate_content';
   
   try {
@@ -172,14 +172,14 @@ async function handleStreamGenerateContent(modelId: string, body: GeminiRequestB
     const streamGenerator = geminiChatService.streamGenerateContent({
       model: modelId,
       ...body,
-    });
+    }, params);
 
     // Stream the response
     for await (const chunk of streamGenerator) {
       reply.raw.write(`data: ${JSON.stringify(chunk)}\n\n`);
     }
 
-    reply.raw.write('data: [DONE]\n\n');
+    // reply.raw.write('data: [DONE]\n\n');
     reply.raw.end();
 
   } catch (error) {
