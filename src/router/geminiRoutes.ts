@@ -179,7 +179,7 @@ async function handleStreamGenerateContent(modelId: string, body: GeminiRequestB
       reply.raw.write(`data: ${JSON.stringify(chunk)}\n\n`);
     }
 
-    // reply.raw.write('data: [DONE]\n\n');
+    // reply.raw.write('data: ["DONE"]\n\n');
     reply.raw.end();
 
   } catch (error) {
