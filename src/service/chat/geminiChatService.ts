@@ -225,12 +225,19 @@ export class GeminiChatService {
     );
   }
 
-  async *streamGenerateContent(payload: GeminiRequest): AsyncGenerator<GeminiResponse, void, unknown> {
-    const startTime = Date.now();
+  async *streamGenerateContent(payload: GeminiRequest, params: any): AsyncGenerator<GeminiResponse, void, unknown> {
+    let retries = 0;
+    const maxRetries = settings.MAX_RETRIES;
     let currentKey: string | null = null;
     let lastError: Error | null = null;
+    let isSuccess = false;
+    let statusCode: number;
+    let finalApiKey: string | null = null;
 
-    for (let attempt = 0; attempt < settings.MAX_RETRIES; attempt++) {
+    while (retries < maxRetries) {
+      const requestDateTime = new Date();
+      // const startTime = Date.now();
+      
       try {
         if (!this.keyManager) {
           await this.initializeKeyManager();
@@ -241,9 +248,9 @@ export class GeminiChatService {
           throw new AppError('No available API keys', HTTP_STATUS_CODES.SERVICE_UNAVAILABLE);
         }
 
+        finalApiKey = currentKey;
         const model = payload.model || settings.MODEL;
         const url = `${this.baseUrl}/models/${model}:streamGenerateContent`;
-        
         const requestPayload = this.buildPayload(payload);
 
         const response = await axios.post(url, requestPayload, {
@@ -252,59 +259,77 @@ export class GeminiChatService {
             'X-Goog-Api-Key': currentKey,
             'User-Agent': settings.USER_AGENT,
           },
+          params: params,
           timeout: settings.TIMEOUT * 1000,
           responseType: 'stream',
         });
 
-        let fullResponse = '';
+        let buffer = '';
         
         for await (const chunk of response.data) {
           const chunkStr = chunk.toString();
-          const lines = chunkStr.split('\n');
+          buffer += chunkStr;
+          
+          // Process complete lines
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || ''; // Keep incomplete line in buffer
           
           for (const line of lines) {
-            if (line.trim().startsWith('data: ')) {
-              const data = line.trim().substring(6);
+            const trimmedLine = line.trim();
+            if (trimmedLine.startsWith('data: ')) {
+              const data = trimmedLine.substring(6).trim();
+              
+              // Handle done signal - end the stream
               if (data === '[DONE]') {
+                logger.info('Received [DONE] signal, ending stream');
                 return;
+              }
+              
+              // Skip empty data
+              if (!data) {
+                continue;
               }
               
               try {
                 const parsed = JSON.parse(data);
-                fullResponse += JSON.stringify(parsed);
                 yield parsed;
               } catch (parseError) {
-                logger.debug({ err: parseError }, 'Failed to parse streaming chunk:');
+                logger.debug({ 
+                  err: parseError, 
+                  data: data.substring(0, 100) 
+                }, 'Failed to parse streaming chunk');
               }
             }
           }
         }
 
-        const endTime = Date.now();
-        const responseTime = new Date(endTime);
-
-        // Log successful request
-        if (settings.REQUEST_LOG_ENABLED) {
-          await databaseService.createRequestLog({
-            geminiKey: this.sanitizeKey(currentKey),
-            modelName: model,
-            requestType: 'chat_stream',
-            requestMsg: requestPayload,
-            responseMsg: { stream: true, response: fullResponse },
-            responseTime,
-          });
-        }
-
         logger.info({
           model,
           key: this.sanitizeKey(currentKey),
-        }, `Streaming request successful in ${endTime - startTime}ms`);
-
-        return;
+        }, 'Streaming completed successfully');
+        
+        isSuccess = true;
+        statusCode = 200;
+        break;
 
       } catch (error: any) {
+        retries++;
+        isSuccess = false;
         lastError = error;
+        const errorMessage = error.message;
         
+        // Extract status code from error
+        const statusMatch = errorMessage.match(/status code (\d+)/);
+        statusCode = statusMatch ? parseInt(statusMatch[1]) : (error.response?.status || 500);
+
+        logger.warn({
+          error: errorMessage,
+          status: statusCode,
+          key: currentKey ? this.sanitizeKey(currentKey) : 'none',
+          attempt: retries,
+          maxRetries,
+        }, `Streaming API call failed. Attempt ${retries} of ${maxRetries}`);
+
         if (currentKey) {
           this.keyManager.markKeyAsFailed(currentKey);
           
@@ -313,31 +338,63 @@ export class GeminiChatService {
             await databaseService.createErrorLog({
               geminiKey: this.sanitizeKey(currentKey),
               modelName: payload.model || settings.MODEL,
-              errorType: error.response?.status?.toString() || 'unknown',
-              errorLog: error.message,
-              errorCode: error.response?.status,
-              requestMsg: payload,
+              errorType: 'gemini-chat-stream',
+              errorLog: errorMessage,
+              errorCode: statusCode,
+              requestMsg: this.buildPayload(payload),
             });
           }
         }
 
-        logger.error({
-          error: error.message,
-          status: error.response?.status,
-          key: currentKey ? this.sanitizeKey(currentKey) : 'none',
-        }, `Streaming request failed (attempt ${attempt + 1}/${settings.MAX_RETRIES}):`);
-
         // Don't retry on certain errors
-        if (error.response?.status === HTTP_STATUS_CODES.BAD_REQUEST || 
-            error.response?.status === HTTP_STATUS_CODES.UNAUTHORIZED) {
+        if (statusCode === HTTP_STATUS_CODES.BAD_REQUEST || 
+            statusCode === HTTP_STATUS_CODES.UNAUTHORIZED) {
+          logger.error({
+            status: statusCode,
+            error: errorMessage,
+          }, 'Non-retryable error encountered, stopping retries');
           break;
+        }
+
+        if (retries >= maxRetries) {
+          logger.error(`Max retries (${maxRetries}) reached for streaming`);
+          break;
+        }
+
+        // Get next key for retry
+        const nextKey = this.keyManager.getNextKey();
+        if (nextKey) {
+          logger.info({
+            newKey: this.sanitizeKey(nextKey),
+          }, 'Switched to new API key for retry');
+        } else {
+          logger.error('No valid API key available for retry');
+          break;
+        }
+
+      } finally {
+        // const endTime = Date.now();
+        // const latencyMs = endTime - startTime;
+        
+        // Log request
+        if (settings.REQUEST_LOG_ENABLED) {
+          await databaseService.createRequestLog({
+            geminiKey: finalApiKey ? this.sanitizeKey(finalApiKey) : 'unknown',
+            modelName: payload.model || settings.MODEL,
+            requestType: 'chat_stream',
+            requestMsg: this.buildPayload(payload),
+            responseMsg: { stream: true, success: isSuccess },
+            responseTime: requestDateTime,
+          });
         }
       }
     }
 
-    throw new ExternalServiceError(
-      lastError?.message || 'Failed to generate streaming content after all retries'
-    );
+    if (!isSuccess) {
+      throw new ExternalServiceError(
+        lastError?.message || 'Failed to generate streaming content after all retries'
+      );
+    }
   }
 
   private buildPayload(payload: GeminiRequest): any {
