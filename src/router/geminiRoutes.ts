@@ -84,25 +84,7 @@ export default async function geminiRoutes(fastify: FastifyInstance) {
           return reply.send(response);
 
         case 'streamGenerateContent':
-          // Set up streaming response
-          reply.type('text/event-stream');
-          reply.header('Cache-Control', 'no-cache');
-          reply.header('Connection', 'keep-alive');
-          reply.header('Access-Control-Allow-Origin', '*');
-          reply.header('Access-Control-Allow-Headers', 'Cache-Control');
-
-          const streamGenerator = geminiChatService.streamGenerateContent({
-            model: modelId,
-            ...body,
-          });
-
-          for await (const chunk of streamGenerator) {
-            reply.raw.write(`data: ${JSON.stringify(chunk)}\n\n`);
-          }
-
-          reply.raw.write('data: [DONE]\n\n');
-          reply.raw.end();
-          break;
+          return await handleStreamGenerateContent(modelId, body, reply);
 
         case 'embedContent':
           // TODO: Implement embedding service
@@ -164,6 +146,57 @@ export default async function geminiRoutes(fastify: FastifyInstance) {
     }
   });
 
+}
+
+async function handleStreamGenerateContent(modelId: string, body: GeminiRequestBody, reply: FastifyReply) {
+  const operationName = 'gemini_stream_generate_content';
+  
+  try {
+    logger.info(`Handling Gemini streaming content generation for model: ${modelId}`);
+    logger.debug(`Request: ${JSON.stringify(body, null, 2)}`);
+
+    // Check model support
+    const isSupported = await modelService.isModelSupported(modelId);
+    if (!isSupported) {
+      throw new AppError(`Model ${modelId} is not supported`, HTTP_STATUS_CODES.BAD_REQUEST);
+    }
+
+    // Set up streaming response headers
+    reply.type('text/event-stream');
+    reply.header('Cache-Control', 'no-cache');
+    reply.header('Connection', 'keep-alive');
+    reply.header('Access-Control-Allow-Origin', '*');
+    reply.header('Access-Control-Allow-Headers', 'Cache-Control');
+
+    // Get the stream generator from chat service
+    const streamGenerator = geminiChatService.streamGenerateContent({
+      model: modelId,
+      ...body,
+    });
+
+    // Stream the response
+    for await (const chunk of streamGenerator) {
+      reply.raw.write(`data: ${JSON.stringify(chunk)}\n\n`);
+    }
+
+    reply.raw.write('data: [DONE]\n\n');
+    reply.raw.end();
+
+  } catch (error) {
+    logger.error({ err: error }, `${operationName} failed`);
+    
+    // Handle streaming errors by writing error to stream
+    if (!reply.sent) {
+      reply.raw.write(`data: ${JSON.stringify({ 
+        error: { 
+          message: (error as Error).message,
+          type: 'streaming_error'
+        }
+      })}\n\n`);
+      reply.raw.end();
+    }
+    throw error;
+  }
 }
 
 async function handleTTSRequest(modelId: string, body: GeminiRequestBody, reply: FastifyReply) {

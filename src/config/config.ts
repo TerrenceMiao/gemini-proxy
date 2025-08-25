@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { config } from 'dotenv';
 import {
-  DEFAULT_FILTER_MODELS,
+  DEFAULT_FILTERED_MODELS,
   DEFAULT_MODEL,
   DEFAULT_CREATE_IMAGE_MODEL,
   DEFAULT_SAFETY_SETTINGS,
@@ -47,7 +47,7 @@ const SettingsSchema = z.object({
   // Model configuration
   MODEL: z.string().default(DEFAULT_MODEL),
   CREATE_IMAGE_MODEL: z.string().default(DEFAULT_CREATE_IMAGE_MODEL),
-  FILTER_MODELS: z.array(z.string()).default(DEFAULT_FILTER_MODELS),
+  FILTERED_MODELS: z.array(z.string()).default(DEFAULT_FILTERED_MODELS),
 
   // Safety settings
   SAFETY_SETTINGS: z.array(SafetySettingSchema).default(DEFAULT_SAFETY_SETTINGS),
@@ -147,7 +147,7 @@ function loadSettingsFromEnv(): Settings {
 
     MODEL: process.env['MODEL'] || DEFAULT_MODEL,
     CREATE_IMAGE_MODEL: process.env['CREATE_IMAGE_MODEL'] || DEFAULT_CREATE_IMAGE_MODEL,
-    FILTER_MODELS: parseEnvArray(process.env['FILTER_MODELS'], DEFAULT_FILTER_MODELS),
+    FILTERED_MODELS: parseEnvArray(process.env['FILTERED_MODELS'], DEFAULT_FILTERED_MODELS),
 
     SAFETY_SETTINGS: parseEnvJSON(process.env['SAFETY_SETTINGS'], DEFAULT_SAFETY_SETTINGS),
 

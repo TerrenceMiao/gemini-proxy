@@ -12,7 +12,7 @@ export const DEFAULT_STREAM_MAX_DELAY = 100;
 export const DEFAULT_STREAM_SHORT_TEXT_THRESHOLD = 50;
 export const DEFAULT_STREAM_LONG_TEXT_THRESHOLD = 200;
 
-export const DEFAULT_FILTER_MODELS = [
+export const DEFAULT_FILTERED_MODELS = [
   'models/gemini-1.5-flash',
   'models/gemini-1.5-pro',
   'models/gemini-1.5-pro-002',

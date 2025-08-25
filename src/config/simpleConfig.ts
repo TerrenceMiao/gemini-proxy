@@ -1,6 +1,6 @@
 import { config } from 'dotenv';
 import {
-  DEFAULT_FILTER_MODELS,
+  DEFAULT_FILTERED_MODELS,
   DEFAULT_MODEL,
   DEFAULT_CREATE_IMAGE_MODEL,
   DEFAULT_SAFETY_SETTINGS,
@@ -64,7 +64,7 @@ export const settings = {
   // Model configuration
   MODEL: process.env['MODEL'] || DEFAULT_MODEL,
   CREATE_IMAGE_MODEL: process.env['CREATE_IMAGE_MODEL'] || DEFAULT_CREATE_IMAGE_MODEL,
-  FILTER_MODELS: parseEnvArray(process.env['FILTER_MODELS'], DEFAULT_FILTER_MODELS),
+  FILTERED_MODELS: parseEnvArray(process.env['FILTERED_MODELS'], DEFAULT_FILTERED_MODELS),
 
   // Safety settings
   SAFETY_SETTINGS: parseEnvJSON(process.env['SAFETY_SETTINGS'], DEFAULT_SAFETY_SETTINGS),

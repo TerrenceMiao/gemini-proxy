@@ -89,7 +89,7 @@ export class ModelService {
   }
 
   private filterModels(models: ModelInfo[]): ModelInfo[] {
-    const filterList = settings.FILTER_MODELS;
+    const filterList = settings.FILTERED_MODELS;
     
     if (!filterList || filterList.length === 0) {
       return models;
@@ -97,14 +97,14 @@ export class ModelService {
 
     // Filter models based on the filter list
     return models.filter(model => {
-      const shouldInclude = filterList.includes(model.name) || 
-                          filterList.includes(`models/${model.name}`);
+      const modelName = model.name.replace(/models\//, '');
+      const shouldInclude = filterList.includes(modelName);
       
-      if (!shouldInclude) {
+      if (shouldInclude) {
         logger.debug(`Filtering out model: ${model.name}`);
       }
       
-      return shouldInclude;
+      return !shouldInclude;
     });
   }
 
@@ -214,6 +214,16 @@ export class ModelService {
       return model !== null;
     } catch (error) {
       logger.error({ err: error }, `Failed to validate model ${modelName}:`);
+      return false;
+    }
+  }
+
+  async isModelSupported(modelName: string): Promise<boolean> {
+    try {
+      const model = await this.getModel(modelName);
+      return model !== null;
+    } catch (error) {
+      logger.error({ err: error }, `Failed to check model support for ${modelName}:`);
       return false;
     }
   }
