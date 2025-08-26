@@ -54,7 +54,7 @@ export class ModelService {
 
       const apiKey = this.keyManager.getNextKey();
       if (!apiKey) {
-        throw new ExternalServiceError('No available API keys');
+        throw new ExternalServiceError('No available API keys in ModelService');
       }
 
       const response = await geminiApiClient.get<ModelListResponse>('/models', {

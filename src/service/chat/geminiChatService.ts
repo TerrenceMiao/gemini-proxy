@@ -51,7 +51,7 @@ export class GeminiChatService {
 
         currentKey = this.keyManager.getNextKey();
         if (!currentKey) {
-          throw new AppError('No available API keys', HTTP_STATUS_CODES.SERVICE_UNAVAILABLE);
+          throw new AppError('No available API keys in GeminiChatService countTokens()', HTTP_STATUS_CODES.SERVICE_UNAVAILABLE);
         }
 
         const model = payload.model || settings.MODEL;
@@ -147,7 +147,7 @@ export class GeminiChatService {
 
         currentKey = this.keyManager.getNextKey();
         if (!currentKey) {
-          throw new AppError('No available API keys', HTTP_STATUS_CODES.SERVICE_UNAVAILABLE);
+          throw new AppError('No available API keys in GeminiChatService generateContent()', HTTP_STATUS_CODES.SERVICE_UNAVAILABLE);
         }
 
         const model = payload.model || settings.MODEL;
@@ -238,7 +238,7 @@ export class GeminiChatService {
 
         currentKey = this.keyManager.getNextKey();
         if (!currentKey) {
-          throw new AppError('No available API keys', HTTP_STATUS_CODES.SERVICE_UNAVAILABLE);
+          throw new AppError('No available API keys in GeminiChatService streamGenerateContent()', HTTP_STATUS_CODES.SERVICE_UNAVAILABLE);
         }
 
         const model = payload.model || settings.MODEL;
@@ -262,13 +262,11 @@ export class GeminiChatService {
         for await (const chunk of response.data) {
           const chunkStr = chunk.toString();
           const lines = chunkStr.split('\n');
-          
+          logger.debug(`Response chunk: ${chunkStr}`);
+
           for (const line of lines) {
             if (line.trim().startsWith('data: ')) {
               const data = line.trim().substring(6);
-              if (data === '[DONE]') {
-                return;
-              }
               
               try {
                 const parsed = JSON.parse(data);
