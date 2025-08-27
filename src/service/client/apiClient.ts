@@ -183,11 +183,18 @@ export class ApiClient {
     
     // Remove sensitive headers for logging
     const sensitiveHeaders = ['authorization', 'x-goog-api-key', 'x-api-key'];
-    for (const header of sensitiveHeaders) {
-      if (sanitized[header]) {
-        sanitized[header] = '[REDACTED]';
+    
+    // Check headers in a case-insensitive way
+    Object.keys(sanitized).forEach(header => {
+      if (sensitiveHeaders.some(sensitive => header.toLowerCase() === sensitive.toLowerCase())) {
+        const value = sanitized[header];
+        if (typeof value === 'string' && value.length > 8) {
+          sanitized[header] = `${value.substring(0, 4)}...${value.substring(value.length - 4)}`;
+        } else {
+          sanitized[header] = value;
+        }
       }
-    }
+    });
     
     return sanitized;
   }

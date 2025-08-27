@@ -89,8 +89,10 @@ export function deepMerge<T extends object>(target: T, source: Partial<T>): T {
 
 export function redactSensitiveData(data: any): any {
   if (typeof data === 'string') {
-    // Redact API keys and tokens
-    return data.replace(/AIza[0-9A-Za-z-_]{35}|sk-[a-zA-Z0-9]{48}/g, '[REDACTED]');
+    // Redact API keys and tokens with first 4 chars + ... + last 4 chars
+    return data.replace(/AIza[0-9A-Za-z-_]{35}|sk-[a-zA-Z0-9]{48}/g, (match) => {
+      return `${match.substring(0, 4)}...${match.substring(match.length - 4)}`;
+    });
   }
   
   if (Array.isArray(data)) {
@@ -101,7 +103,11 @@ export function redactSensitiveData(data: any): any {
     const result: any = {};
     for (const [key, value] of Object.entries(data)) {
       if (key.toLowerCase().includes('key') || key.toLowerCase().includes('token') || key.toLowerCase().includes('password')) {
-        result[key] = '[REDACTED]';
+        if (typeof value === 'string' && value.length > 8) {
+          result[key] = `${value.substring(0, 4)}...${value.substring(value.length - 4)}`;
+        } else {
+          result[key] = value;
+        }
       } else {
         result[key] = redactSensitiveData(value);
       }
