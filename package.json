@@ -1,7 +1,7 @@
 {
   "name": "gemini-proxy",
-  "version": "2.2.2",
-  "description": "Gemini API proxy service with load balancing and key management - TypeScript version",
+  "version": "1.0.0",
+  "description": "Gemini API proxy service with load balancing and key management",
   "main": "dist/main.js",
   "scripts": {
     "build": "tsc && tsc-alias",

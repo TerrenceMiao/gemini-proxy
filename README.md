@@ -1,166 +1,280 @@
-[Read this document in Chinese](README_ZH.md)
+# Gemini Proxy
 
-# Gemini Balance - Gemini API Proxy and Load Balancer
+A TypeScript port of the Gemini API proxy server built with Fastify, providing load balancing, key management, and multiple API compatibility layers.
 
-<p align="center">
-  <a href="https://trendshift.io/repositories/13692" target="_blank">
-    <img src="https://trendshift.io/api/badge/repositories/13692" alt="snailyp%2Fgemini-balance | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/>
-  </a>
-</p>
+## Features
 
-<p align="center">
-  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.9%2B-blue.svg" alt="Python"></a>
-  <a href="https://fastapi.tiangolo.com/"><img src="https://img.shields.io/badge/FastAPI-0.100%2B-green.svg" alt="FastAPI"></a>
-  <a href="https://www.uvicorn.org/"><img src="https://img.shields.io/badge/Uvicorn-running-purple.svg" alt="Uvicorn"></a>
-  <a href="https://t.me/+soaHax5lyI0wZDVl"><img src="https://img.shields.io/badge/Telegram-Group-blue.svg?logo=telegram" alt="Telegram Group"></a>
-</p>
+- 🚀 **High Performance**: Built with Fastify for maximum performance
+- 🔄 **Load Balancing**: Round-robin key rotation with failure handling
+- 🔑 **Multi-API Support**: Gemini native API, OpenAI-compatible, and Vertex AI endpoints
+- 🎵 **TTS Support**: Native Gemini TTS with multi-speaker support
+- 📸 **Image Generation**: Imagen-3.0 integration with multiple upload providers
+- 📊 **Comprehensive Logging**: Request/error logging with auto-cleanup
+- 🛡️ **Security**: Token-based authentication with role-based access
+- 🐳 **Docker Ready**: Multi-stage Docker builds with health checks
+- 📈 **Monitoring**: Built-in stats, health checks, and scheduler monitoring
 
-> ⚠️ **Important**: This project is licensed under the [CC BY-NC 4.0](LICENSE) license. **Any form of commercial resale service is prohibited**.
-> I have never sold this service on any platform. If you encounter someone selling this service, they are a reseller. Please do not be deceived.
+## Quick Start
 
----
+### Prerequisites
 
-## 📖 Project Introduction
+- Node.js 18+ 
+- MySQL 8+ or SQLite
+- npm or yarn
 
-**Gemini Balance** is an application built with Python FastAPI, designed to provide proxy and load balancing functions for the Google Gemini API. It allows you to manage multiple Gemini API Keys and implement key rotation, authentication, model filtering, and status monitoring through simple configuration. Additionally, the project integrates image generation and multiple image hosting upload functions, and supports proxying in the OpenAI API format.
+### Installation
 
-<details>
-<summary>📂 View Project Structure</summary>
+```bash
+# Clone the repository
+git clone <repository-url>
+cd gemini-proxy
 
-```plaintext
-app/
-├── config/       # Configuration management
-├── core/         # Core application logic (FastAPI instance creation, middleware, etc.)
-├── database/     # Database models and connections
-├── domain/       # Business domain objects
-├── exception/    # Custom exceptions
-├── handler/      # Request handlers
-├── log/          # Logging configuration
-├── main.py       # Application entry point
-├── middleware/   # FastAPI middleware
-├── router/       # API routes (Gemini, OpenAI, status page, etc.)
-├── scheduler/    # Scheduled tasks (e.g., Key status check)
-├── service/      # Business logic services (chat, Key management, statistics, etc.)
-├── static/       # Static files (CSS, JS)
-├── templates/    # HTML templates (e.g., Key status page)
-└── utils/        # Utility functions
+# Install dependencies
+npm install
+
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your configuration
+
+# Generate Prisma client
+npx prisma generate
+
+# Run database migrations
+npx prisma migrate deploy
+
+# Start development server
+npm run dev
 ```
-</details>
 
----
+### Docker Deployment
 
-## ✨ Feature Highlights
+```bash
+# Build and run with Docker Compose
+docker-compose up -d
 
-*   **Multi-Key Load Balancing**: Supports configuring multiple Gemini API Keys (`API_KEYS`) for automatic sequential polling.
-*   **Visual Configuration**: Configurations modified through the admin backend take effect immediately without restarting.
-    ![Configuration Panel](files/image4.png)
-*   **Dual Protocol API Compatibility**: Supports both Gemini and OpenAI CHAT API formats.
-    *   OpenAI Base URL: `http://localhost:8000(/hf)/v1`
-    *   Gemini Base URL: `http://localhost:8000(/gemini)/v1beta`
-*   **Image-Text Chat & Modification**: Configure models with `IMAGE_MODELS` to support image-text chat and editing. Use the `configured_model-image` model name to invoke.
-    ![Chat with Image Generation](files/image6.png)
-    ![Modify Image](files/image7.png)
-*   **Web Search**: Configure models with `SEARCH_MODELS` to support web search. Use the `configured_model-search` model name to invoke.
-    ![Web Search](files/image8.png)
-*   **Key Status Monitoring**: Provides a `/keys_status` page (authentication required) for real-time monitoring.
-    ![Monitoring Panel](files/image.png)
-*   **Detailed Logging**: Provides detailed error logs for easy troubleshooting.
-    ![Call Details](files/image1.png)
-    ![Log List](files/image2.png)
-    ![Log Details](files/image3.png)
-*   **Flexible Key Addition**: Add keys in batches using the `gemini_key` regex, with automatic deduplication.
-    ![Add Key](files/image5.png)
-*   **Failure Retry & Auto-Disable**: Automatically retries failed API requests (`MAX_RETRIES`) and disables keys after excessive failures (`MAX_FAILURES`).
-*   **Comprehensive API Compatibility**:
-    *   **Embeddings API**: Fully compatible with the OpenAI `embeddings` API format.
-    *   **Image Generation API**: Adapts the `imagen-3.0-generate-002` model to the OpenAI image generation API format.
-*   **Automatic Model List Maintenance**: Automatically fetches and syncs the latest model lists from Gemini and OpenAI.
-*   **Proxy Support**: Supports HTTP/SOCKS5 proxies (`PROXIES`).
-*   **Docker Support**: Provides Docker images for both AMD and ARM architectures.
-    *   Image Address: `ghcr.io/snailyp/gemini-balance:latest`
+# Or build manually
+docker build -t gemini-proxy-ts .
+docker run -d -p 8000:8000 --env-file .env gemini-proxy-ts
+```
 
----
+## Configuration
 
-## 🚀 Quick Start
+### Environment Variables
 
-### Option 1: Docker Compose (Recommended)
+Copy `.env.example` to `.env` and configure:
 
-1.  **Get `docker-compose.yml`**:
-    Download the `docker-compose.yml` file from the project repository.
-2.  **Prepare `.env` file**:
-    Copy `.env.example` to `.env` and configure it. Ensure `DATABASE_TYPE` is set to `mysql` and fill in the `MYSQL_*` details.
-3.  **Start Services**:
-    In the directory containing `docker-compose.yml` and `.env`, run:
-    ```bash
-    docker-compose up -d
-    ```
+```env
+# Database
+DATABASE_TYPE=mysql
+MYSQL_HOST=localhost
+MYSQL_PORT=3306
+MYSQL_USER=gemini
+MYSQL_PASSWORD=password
+MYSQL_DATABASE=gemini
 
-### Option 2: Docker Command
+# API Keys (comma-separated)
+API_KEYS=AIzaMxxxxxxxxxxxxx,AIzaSxxxxxxxxxxxxx,AIzaTxxxxxxxxxxxxxx,AIzaBxxxxxxxxxxx
+ALLOWED_TOKENS=["sk-"]
+AUTH_TOKEN=sk-
 
-1.  **Pull Image**:
-    ```bash
-    docker pull ghcr.io/snailyp/gemini-balance:latest
-    ```
-2.  **Prepare `.env` file**:
-    Copy `.env.example` to `.env` and configure it.
-3.  **Run Container**:
-    ```bash
-    docker run -d -p 8000:8000 --name gemini-balance \
-    -v ./data:/app/data \
-    --env-file .env \
-    ghcr.io/snailyp/gemini-balance:latest
-    ```
-    *   `-d`: Detached mode.
-    *   `-p 8000:8000`: Map container port 8000 to host.
-    *   `-v ./data:/app/data`: Mount volume for persistent data.
-    *   `--env-file .env`: Load environment variables.
+VERTEX_API_KEYS=AQ.Abxxxxxxxxxxxxxxxxxxx,AQ.Acxxxxxxxxxxxxxxxxxxx
 
-### Option 3: Local Development
+# Basic Settings
+TEST_MODEL=gemini-2.5-flash
+THINKING_MODELS=gemini-2.5-pro
+TIME_OUT=300
+MAX_RETRIES=3
+```
 
-1.  **Clone and Install**:
-    ```bash
-    git clone https://github.com/snailyp/gemini-balance.git
-    cd gemini-balance
-    pip install -r requirements.txt
-    ```
-2.  **Configure Environment**:
-    Copy `.env.example` to `.env` and configure it.
-3.  **Start Application**:
-    ```bash
-    uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-    ```
-    Access the application at `http://localhost:8000`.
+### Dynamic Configuration
 
----
+The application supports runtime configuration changes through the admin interface at `/config`.
 
-## ⚙️ API Endpoints
+## API Endpoints
 
-### Gemini API Format (`/gemini/v1beta`)
+### Gemini Native API
 
-*   `GET /models`: List available Gemini models.
-*   `POST /models/{model_name}:generateContent`: Generate content.
-*   `POST /models/{model_name}:streamGenerateContent`: Stream content generation.
+```bash
+# Generate content
+POST /v1beta/models/{model}:generateContent
 
-### OpenAI API Format
+# Stream generate content
+POST /v1beta/models/{model}:streamGenerateContent
 
-#### Hugging Face (HF) Compatible
+# List models
+GET /v1beta/models
 
-*   `GET /hf/v1/models`: List models.
-*   `POST /hf/v1/chat/completions`: Chat completion.
-*   `POST /hf/v1/embeddings`: Create text embeddings.
-*   `POST /hf/v1/images/generations`: Generate images.
+# Get model info
+GET /v1beta/models/{model}
+```
 
-#### Standard OpenAI
+### OpenAI Compatible API
 
-*   `GET /openai/v1/models`: List models.
-*   `POST /openai/v1/chat/completions`: Chat completion (Recommended).
-*   `POST /openai/v1/embeddings`: Create text embeddings.
-*   `POST /openai/v1/images/generations`: Generate images.
+```bash
+# Chat completions
+POST /v1/chat/completions
 
----
+# List models
+GET /v1/models
 
-<details>
-<summary>📋 View Full Configuration List</summary>
+# Text-to-speech
+POST /v1/audio/speech
+
+# Embeddings
+POST /v1/embeddings
+```
+
+### Admin API
+
+```bash
+# Configuration
+GET /config
+PUT /config
+
+# Statistics
+GET /stats/overview
+GET /stats/daily/{date}
+
+# Health checks
+GET /health
+GET /health/detailed
+```
+
+## Development
+
+### Available Scripts
+
+```bash
+# Development
+npm run dev          # Start development server with auto-reload
+npm run build        # Build for production
+npm run start        # Start production server
+
+# Code Quality
+npm run lint         # Run ESLint
+npm run format       # Format code with Prettier
+npm run type-check   # Run TypeScript compiler
+
+# Testing
+npm run test         # Run tests
+npm run test:watch   # Run tests in watch mode
+npm run test:coverage # Run tests with coverage
+```
+
+### Project Structure
+
+```
+src/
+├── config/          # Configuration management
+├── core/           # Core application setup
+├── database/       # Database models and services
+├── exception/      # Error handling
+├── handler/        # Request/response handlers
+├── log/            # Logging utilities
+├── middleware/     # Fastify middleware
+├── router/         # API routes
+├── scheduler/      # Background tasks
+├── service/        # Business logic services
+├── static/         # Static assets
+├── templates/      # View templates
+└── utils/          # Utility functions
+```
+
+## Architecture
+
+### Core Components
+
+- **FastAPI Application**: Main web framework with async support
+- **Prisma ORM**: Database operations with MySQL/SQLite support
+- **Key Management**: Round-robin load balancing with failure handling
+- **Service Layer**: Modular business logic (chat, TTS, files, etc.)
+- **Middleware Stack**: Request logging, authentication, error handling
+
+### Key Features
+
+- **Dual API Compatibility**: Supports both Gemini native and OpenAI-compatible endpoints
+- **Advanced TTS**: Multi-speaker voice synthesis with intelligent detection
+- **File Management**: Multiple upload providers (Internal, SMMS, PicGo, Cloudflare)
+- **Stream Optimization**: Enhanced streaming performance with configurable chunking
+- **Health Monitoring**: Comprehensive health checks and system metrics
+
+## Deployment
+
+### Docker
+
+```bash
+# Production deployment
+docker-compose -f docker-compose.yml up -d
+
+# Development with hot reload
+docker-compose -f docker-compose.dev.yml up -d
+```
+
+### Manual Deployment
+
+```bash
+# Build the application
+npm run build
+
+# Run database migrations
+npx prisma migrate deploy
+
+# Start the server
+npm start
+```
+
+## Monitoring
+
+### Health Checks
+
+- `/health` - Basic health status
+- `/health/detailed` - Comprehensive system health
+- `/health/ready` - Readiness probe
+- `/health/live` - Liveness probe
+
+### Metrics
+
+- `/stats/overview` - System statistics
+- `/stats/daily/{date}` - Daily usage stats
+- `/stats/models` - Model usage statistics
+
+## Security
+
+- Token-based authentication
+- API key rotation and failure handling
+- Request rate limiting
+- Sensitive data redaction in logs
+- Docker security best practices
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Run `npm run lint` and `npm run test`
+6. Submit a pull request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Support
+
+For issues and questions:
+- Create an issue on GitHub
+- Check the documentation in the `/docs` directory
+- Review the configuration examples in `.env.example`
+
+## Migration from Python Version
+
+This TypeScript version maintains API compatibility with the original Python version while providing:
+- Better type safety
+- Improved performance
+- Enhanced development experience
+- Modern tooling and practices
+
+## Full Configuration List
 
 | Configuration Item | Description | Default Value |
 | :--- | :--- | :--- |
@@ -227,49 +341,3 @@ app/
 | **Fake Stream** | | |
 | `FAKE_STREAM_ENABLED` | Enable fake streaming | `false` |
 | `FAKE_STREAM_EMPTY_DATA_INTERVAL_SECONDS` | Heartbeat interval for fake streaming (seconds) | `5` |
-
-</details>
-
----
-
-## 🤝 Contributing
-
-Pull Requests or Issues are welcome.
-
-[![Contributors](https://contrib.rocks/image?repo=snailyp/gemini-balance)](https://github.com/snailyp/gemini-balance/graphs/contributors)
-
-## ⭐ Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=snailyp/gemini-balance&type=Date)](https://star-history.com/#snailyp/gemini-balance&Date)
-
-## 🎉 Special Thanks
-
-*   [PicGo](https://www.picgo.net/)
-*   [SM.MS](https://smms.app/)
-*   [CloudFlare-ImgBed](https://github.com/MarSeventh/CloudFlare-ImgBed)
-
-## 🙏 Our Supporters
-
-A special shout-out to [DigitalOcean](https://m.do.co/c/b249dd7f3b4c) for providing the rock-solid and dependable cloud infrastructure that keeps this project humming!
-
-<a href="https://m.do.co/c/b249dd7f3b4c">
-  <img src="files/dataocean.svg" alt="DigitalOcean Logo" width="200"/>
-</a>
-
-CDN acceleration and security protection for this project are sponsored by [Tencent EdgeOne](https://edgeone.ai/?from=github).
-
-<a href="https://edgeone.ai/?from=github">
-  <img src="https://edgeone.ai/media/34fe3a45-492d-4ea4-ae5d-ea1087ca7b4b.png" alt="EdgeOne Logo" width="200"/>
-</a>
-
-## 💖 Friendly Projects
-
-*   **[OneLine](https://github.com/chengtx809/OneLine)** by [chengtx809](https://github.com/chengtx809) - AI-driven hot event timeline generation tool.
-
-## 🎁 Project Support
-
-If you find this project helpful, consider supporting me via [Afdian](https://afdian.com/a/snaily).
-
-## License
-
-This project is licensed under the [CC BY-NC 4.0](LICENSE) (Attribution-NonCommercial) license.
