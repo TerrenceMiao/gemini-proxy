@@ -17,17 +17,25 @@
     "db:validate": "ts-node -r tsconfig-paths/register src/database/migrate.ts validate",
     "db:push": "npx prisma db push",
     "db:generate": "npx prisma generate",
-    "db:studio": "npx prisma studio"
+    "db:studio": "npx prisma studio",
+    "prepublishOnly": "npm run build"    
   },
   "keywords": [
     "gemini",
     "proxy",
     "fastify",
-    "typescript",
     "load-balancing"
   ],
   "author": "Terrence",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TerrenceMiao/gemini-proxy.git"
+  },
+  "homepage": "https://github.com/TerrenceMiao/gemini-proxy#README",
+  "bugs": {
+    "url": "https://github.com/TerrenceMiao/gemini-proxy/issues"
+  },  
   "dependencies": {
     "@fastify/cors": "^11.1.0",
     "@fastify/helmet": "^13.0.1",
