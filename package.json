@@ -3,8 +3,11 @@
   "version": "1.0.0",
   "description": "Gemini API proxy service with load balancing and key management",
   "main": "dist/main.js",
+  "bin": {
+    "gemini-proxy": "./dist/main.js"
+  },
   "scripts": {
-    "build": "tsc && tsc-alias",
+    "build": "tsc && tsc-alias && chmod +x dist/main.js",
     "dev": "nodemon",
     "start": "node dist/main.js",
     "test": "jest",
@@ -18,6 +21,7 @@
     "db:push": "npx prisma db push",
     "db:generate": "npx prisma generate",
     "db:studio": "npx prisma studio",
+    "prepare": "npm run build",
     "prepublishOnly": "npm run build"    
   },
   "keywords": [

@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { config } from 'dotenv';
 import { createApp } from '@/core/application';
 import { getMainLogger } from '@/log/logger';
