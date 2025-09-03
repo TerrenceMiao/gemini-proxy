@@ -223,6 +223,16 @@ npx prisma migrate deploy
 npm start
 ```
 
+### Command Line
+
+```bash
+# Runtime environment variables
+cp .env.example .env
+
+# Start the server
+npx gemini-proxy start
+```
+
 ## Monitoring
 
 ### Health Checks
