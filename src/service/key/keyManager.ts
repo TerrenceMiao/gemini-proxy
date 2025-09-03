@@ -19,7 +19,9 @@ export class KeyManager {
     const availableKeys = this.apiKeys.filter(key => !this.failedKeys.has(key));
 
     if (availableKeys.length === 0) {
-      logger.error(`No available API keys in KeyManager. apiKeys: ${JSON.stringify(this.apiKeys)} failedKeys: ${JSON.stringify(Array.from(this.failedKeys))}`);
+      const sanitizedApiKeys = this.apiKeys.map(key => this.sanitizeKey(key));
+      const sanitizedFailedKeys = Array.from(this.failedKeys).map(key => this.sanitizeKey(key));
+      logger.error(`No available API keys in KeyManager. apiKeys: ${JSON.stringify(sanitizedApiKeys)} failedKeys: ${JSON.stringify(sanitizedFailedKeys)}`);
       return undefined;
     }
 
