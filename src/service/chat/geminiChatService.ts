@@ -258,11 +258,17 @@ export class GeminiChatService {
         });
 
         let fullResponse = '';
+        let buffer = '';
         
         for await (const chunk of response.data) {
           const chunkStr = chunk.toString();
-          const lines = chunkStr.split('\n');
+          buffer += chunkStr;
           logger.debug(`Response chunk: ${chunkStr}`);
+
+          // Process complete lines from buffer
+          const lines = buffer.split('\n');
+          // Keep the last line in buffer as it might be incomplete
+          buffer = lines.pop() || '';
 
           for (const line of lines) {
             if (line.trim().startsWith('data: ')) {
@@ -273,11 +279,28 @@ export class GeminiChatService {
                 fullResponse += JSON.stringify(parsed);
                 yield parsed;
               } catch (parseError) {
-                logger.debug({ err: parseError }, 'Failed to parse streaming chunk:');
+                logger.debug({ err: parseError, data }, 'Failed to parse streaming chunk');
               }
             }
           }
         }
+
+        // Process any remaining data in buffer
+        if (buffer.trim()) {
+          const line = buffer.trim();
+          if (line.startsWith('data: ')) {
+            const data = line.substring(6);
+            try {
+              const parsed = JSON.parse(data);
+              fullResponse += JSON.stringify(parsed);
+              yield parsed;
+            } catch (parseError) {
+              logger.debug({ err: parseError, data }, 'Failed to parse final chunk');
+            }
+          }
+        }
+
+        logger.debug(`Response: ${fullResponse}`);
 
         const endTime = Date.now();
         const responseTime = new Date(endTime);
