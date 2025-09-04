@@ -23,6 +23,9 @@ RUN adduser -S nodejs -u 1001
 
 # Copy package files
 COPY package*.json ./
+COPY tsconfig.json ./
+COPY src ./src
+COPY prisma ./prisma
 
 # Install production dependencies only
 RUN npm ci && npm cache clean --force
