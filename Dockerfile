@@ -1,24 +1,16 @@
 # Multi-stage build for TypeScript application
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
 COPY tsconfig.json ./
-
-# Install dependencies
-RUN npm ci
-
-# Copy source code
 COPY src ./src
 COPY prisma ./prisma
 
-# Generate Prisma client
-RUN npx prisma generate
-
-# Build the application
-RUN npm run build
+# Install dependencies and build
+RUN npm ci && npx prisma generate && npm run build
 
 # # Production stage
 # FROM node:18-alpine AS production
