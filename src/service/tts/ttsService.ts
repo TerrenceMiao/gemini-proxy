@@ -203,7 +203,7 @@ export class TTSService {
 
   isTTSRequest(request: { responseModalities?: string[] }): boolean {
     // Check if request is a TTS request based on response modalities
-    const modalities = request.responseModalities || [];
+    const modalities = request.responseModalities ?? [];
     return Array.isArray(modalities) && modalities.includes('AUDIO');
   }
 

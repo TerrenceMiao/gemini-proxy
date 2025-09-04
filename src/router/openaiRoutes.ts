@@ -292,7 +292,7 @@ async function handleStreamingChat(geminiRequest: GeminiRequest, reply: FastifyR
     const streamGenerator = geminiChatService.streamGenerateContent(geminiRequest, {});
     
     for await (const chunk of streamGenerator) {
-      const openaiChunk = convertGeminiChunkToOpenAI(chunk, geminiRequest.model || '');
+      const openaiChunk = convertGeminiChunkToOpenAI(chunk, geminiRequest.model ?? '');
       reply.raw.write(`data: ${JSON.stringify(openaiChunk)}\n\n`);
     }
 

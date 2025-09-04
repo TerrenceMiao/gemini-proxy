@@ -111,19 +111,19 @@ export default async function geminiRoutes(fastify: FastifyInstance) {
           // Regular chat request
           const response = await geminiChatService.generateContent({
             model: modelId,
-            generationConfig: body.generationConfig || {},
-            safetySettings: body.safetySettings || [],
-            tools: body.tools || [],
-            responseModalities: body.responseModalities || [],
+            generationConfig: body.generationConfig ?? {},
+            safetySettings: body.safetySettings ?? [],
+            tools: body.tools ?? [],
+            responseModalities: body.responseModalities ?? [],
             speechConfig: body.speechConfig ?? {},
             stream: body.stream ?? false,
-            contents: body.contents?.map(content => ({
-              role: content.role || 'user',
-              parts: content.parts?.map(part => ({
-                text: part.text || '',
+            contents: (body.contents ?? []).map(content => ({
+              role: content.role ?? 'user',
+              parts: (content.parts ?? []).map(part => ({
+                text: part.text ?? '',
                 ...part
-              })) || []
-            })) as any
+              }))
+            }))
           });
 
           return reply.send(response);
@@ -144,19 +144,19 @@ export default async function geminiRoutes(fastify: FastifyInstance) {
         case 'countTokens':
           const tokenCount = await geminiChatService.countTokens({
             model: modelId,
-            generationConfig: body.generationConfig || {},
-            safetySettings: body.safetySettings || [],
-            tools: body.tools || [],
-            responseModalities: body.responseModalities || [],
+            generationConfig: body.generationConfig ?? {},
+            safetySettings: body.safetySettings ?? [],
+            tools: body.tools ?? [],
+            responseModalities: body.responseModalities ?? [],
             speechConfig: body.speechConfig ?? {},
             stream: body.stream ?? false,
-            contents: body.contents?.map(content => ({
-              role: content.role || 'user',
-              parts: content.parts?.map(part => ({
-                text: part.text || '',
+            contents: (body.contents ?? []).map(content => ({
+              role: content.role ?? 'user',
+              parts: (content.parts ?? []).map(part => ({
+                text: part.text ?? '',
                 ...part
-              })) || []
-            })) as any
+              }))
+            }))
           });
           
           return reply.send(tokenCount);
@@ -234,13 +234,13 @@ async function handleStreamGenerateContent(modelId: string, body: GeminiRequestB
       responseModalities: body.responseModalities ?? [],
       speechConfig: body.speechConfig ?? {},
       stream: true, // Always true for streaming endpoint
-      contents: body.contents?.map(content => ({
-        role: content.role || 'user',
-        parts: content.parts?.map(part => ({
-          text: part.text || '',
+      contents: (body.contents ?? []).map(content => ({
+        role: content.role ?? 'user',
+        parts: (content.parts ?? []).map(part => ({
+          text: part.text ?? '',
           ...part
-        })) || []
-      })) as any
+        }))
+      }))
     }, params);
 
     // Stream the response

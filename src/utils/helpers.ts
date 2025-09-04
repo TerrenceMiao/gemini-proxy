@@ -160,21 +160,21 @@ export function getClientIp(request: { headers: Record<string, string | string[]
     'unknown'
   );
   
-  return Array.isArray(ip) ? (ip[0] || ip) : ip;
+  return Array.isArray(ip) ? (ip[0] ?? 'unknown') : ip;
 }
 
 export function safeJsonStringify(obj: unknown): string {
   try {
-    return JSON.stringify(obj, (_, value) => {
+    return JSON.stringify(obj, (_, value: unknown) => {
       if (typeof value === 'bigint') {
         return value.toString();
       }
       if (value === undefined) {
         return null;
       }
-      return value;
+      return value as string | number | boolean | null | object;
     });
-  } catch (error) {
+  } catch {
     return JSON.stringify({ error: 'Failed to stringify object' });
   }
 }
