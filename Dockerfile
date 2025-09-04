@@ -39,9 +39,7 @@ RUN npm ci && npm cache clean --force
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
-# Copy static files and templates
-COPY --from=builder /app/src/static ./src/static
-COPY --from=builder /app/src/templates ./src/templates
+
 
 # Copy VERSION file
 COPY ./VERSION /app/VERSION
