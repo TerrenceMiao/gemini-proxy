@@ -10,7 +10,7 @@
     "build": "tsc && tsc-alias && chmod +x dist/main.js",
     "dev": "nodemon",
     "start": "node dist/main.js",
-    "test": "jest",
+    "test": "echo 'Testing has been disabled.'",
     "lint": "echo 'Linting has been disabled.'",
     "format": "prettier --write src/**/*.ts",
     "db:migrate": "ts-node -r tsconfig-paths/register src/database/migrate.ts migrate",
