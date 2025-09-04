@@ -120,17 +120,17 @@ export class ErrorLogService {
       for (const log of logs) {
         // Count by error type
         if (log.errorType) {
-          stats.errorsByType[log.errorType] = (stats.errorsByType[log.errorType] || 0) + 1;
+          stats.errorsByType[log.errorType] = (stats.errorsByType[log.errorType] ?? 0) + 1;
         }
 
         // Count by model
         if (log.modelName) {
-          stats.errorsByModel[log.modelName] = (stats.errorsByModel[log.modelName] || 0) + 1;
+          stats.errorsByModel[log.modelName] = (stats.errorsByModel[log.modelName] ?? 0) + 1;
         }
 
         // Count by error code
         if (log.errorCode) {
-          stats.errorsByCode[log.errorCode] = (stats.errorsByCode[log.errorCode] || 0) + 1;
+          stats.errorsByCode[log.errorCode] = (stats.errorsByCode[log.errorCode] ?? 0) + 1;
         }
       }
 
@@ -176,7 +176,7 @@ export class ErrorLogService {
 
   async deleteOldErrorLogs(retentionDays?: number): Promise<number> {
     try {
-      const days = retentionDays || settings.ERROR_LOG_RETENTION_DAYS;
+      const days = retentionDays ?? settings.ERROR_LOG_RETENTION_DAYS;
       const deletedCount = await databaseService.deleteOldErrorLogs(days);
       
       if (deletedCount > 0) {
@@ -187,7 +187,7 @@ export class ErrorLogService {
 
     } catch (error) {
       logger.error({ err: error }, 'Failed to delete old error logs:');
-      return 0;
+      return Promise.resolve(0);
     }
   }
 
@@ -213,7 +213,7 @@ export class ErrorLogService {
           timeKey = log.requestTime.toISOString().substring(0, 10);
         }
         
-        grouped[timeKey] = (grouped[timeKey] || 0) + 1;
+        grouped[timeKey] = (grouped[timeKey] ?? 0) + 1;
       }
 
       return Object.entries(grouped)
@@ -284,15 +284,15 @@ export class ErrorLogService {
     }
   }
 
-  async clearAllErrorLogs(): Promise<number> {
+  clearAllErrorLogs(): Promise<number> {
     try {
       // This would need to be implemented in the database service
       logger.warn('Clear all error logs not implemented yet');
-      return 0;
+      return Promise.resolve(0);
 
     } catch (error) {
       logger.error({ err: error }, 'Failed to clear all error logs:');
-      return 0;
+      return Promise.resolve(0);
     }
   }
 }

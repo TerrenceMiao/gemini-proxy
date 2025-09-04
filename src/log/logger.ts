@@ -4,7 +4,7 @@ const isDevelopment = process.env['NODE_ENV'] === 'development';
 
 // Create base logger configuration
 const loggerConfig = {
-  level: process.env['LOG_LEVEL'] || 'info',
+  level: process.env['LOG_LEVEL'] ?? 'info',
   ...(isDevelopment && {
     transport: {
       target: 'pino-pretty',
@@ -50,23 +50,35 @@ export class Logger {
     this.logger = pino({ ...loggerConfig, name });
   }
 
-  info(message: string, ...args: any[]): void {
-    this.logger.info(message, ...args);
+  info(message: string, ...args: unknown[]): void {
+    if (args.length > 0) {
+      this.logger.info({ args }, message);
+    } else {
+      this.logger.info(message);
+    }
   }
 
-  error(message: string, error?: Error | any): void {
-    this.logger.error(error || {}, message);
+  error(message: string, error?: unknown): void {
+    this.logger.error(error ?? {}, message);
   }
 
-  warn(message: string, ...args: any[]): void {
-    this.logger.warn(message, ...args);
+  warn(message: string, ...args: unknown[]): void {
+    if (args.length > 0) {
+      this.logger.warn({ args }, message);
+    } else {
+      this.logger.warn(message);
+    }
   }
 
-  debug(message: string, ...args: any[]): void {
-    this.logger.debug(message, ...args);
+  debug(message: string, ...args: unknown[]): void {
+    if (args.length > 0) {
+      this.logger.debug({ args }, message);
+    } else {
+      this.logger.debug(message);
+    }
   }
 
-  critical(message: string, error?: Error | any): void {
-    this.logger.fatal(error || {}, message);
+  critical(message: string, error?: unknown): void {
+    this.logger.fatal(error ?? {}, message);
   }
 }

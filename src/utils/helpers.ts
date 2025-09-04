@@ -9,8 +9,8 @@ export function getCurrentVersion(): string {
   } catch {
     try {
       const packagePath = join(process.cwd(), 'package.json');
-      const packageJson = JSON.parse(readFileSync(packagePath, 'utf8'));
-      return packageJson.version || '1.0.0';
+      const packageJson = JSON.parse(readFileSync(packagePath, 'utf8')) as { version?: string };
+      return packageJson.version ?? '1.0.0';
     } catch {
       return '1.0.0';
     }
@@ -57,14 +57,14 @@ export function sleep(ms: number): Promise<void> {
 
 export function parseJsonSafely<T>(jsonString: string, defaultValue: T): T {
   try {
-    return JSON.parse(jsonString);
+    return JSON.parse(jsonString) as T;
   } catch {
     return defaultValue;
   }
 }
 
-export function isObject(item: any): boolean {
-  return item && typeof item === 'object' && !Array.isArray(item);
+export function isObject(item: unknown): item is Record<string, unknown> {
+  return item !== null && typeof item === 'object' && !Array.isArray(item);
 }
 
 export function deepMerge<T extends object>(target: T, source: Partial<T>): T {
@@ -76,7 +76,7 @@ export function deepMerge<T extends object>(target: T, source: Partial<T>): T {
         if (!(key in target)) {
           Object.assign(output, { [key]: source[key as keyof T] });
         } else {
-          (output as any)[key] = deepMerge(target[key as keyof T] as object, source[key as keyof T] as Partial<object>);
+          output[key as keyof T] = deepMerge(target[key as keyof T] as object, source[key as keyof T] as Partial<object>) as T[keyof T];
         }
       } else {
         Object.assign(output, { [key]: source[key as keyof T] });
@@ -87,7 +87,7 @@ export function deepMerge<T extends object>(target: T, source: Partial<T>): T {
   return output;
 }
 
-export function redactSensitiveData(data: any): any {
+export function redactSensitiveData(data: unknown): unknown {
   if (typeof data === 'string') {
     // Redact API keys and tokens with first 4 chars + ... + last 4 chars
     return data.replace(/AIza[0-9A-Za-z-_]{35}|sk-[a-zA-Z0-9]{48}/g, (match) => {
@@ -100,7 +100,7 @@ export function redactSensitiveData(data: any): any {
   }
   
   if (isObject(data)) {
-    const result: any = {};
+    const result: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(data)) {
       if (key.toLowerCase().includes('key') || key.toLowerCase().includes('token') || key.toLowerCase().includes('password')) {
         if (typeof value === 'string' && value.length > 8) {
@@ -150,13 +150,31 @@ export function formatTimestamp(timestamp: Date): string {
   return timestamp.toISOString();
 }
 
-export function getClientIp(request: any): string {
-  return (
-    request.headers['x-forwarded-for'] ||
-    request.headers['x-real-ip'] ||
-    request.connection?.remoteAddress ||
-    request.socket?.remoteAddress ||
-    request.ip ||
+export function getClientIp(request: { headers: Record<string, string | string[] | undefined>; connection?: { remoteAddress?: string }; socket?: { remoteAddress?: string }; ip?: string }): string | string[] {
+  const ip = (
+    request.headers['x-forwarded-for'] ??
+    request.headers['x-real-ip'] ??
+    request.connection?.remoteAddress ??
+    request.socket?.remoteAddress ??
+    request.ip ??
     'unknown'
   );
+  
+  return Array.isArray(ip) ? (ip[0] || ip) : ip;
+}
+
+export function safeJsonStringify(obj: unknown): string {
+  try {
+    return JSON.stringify(obj, (_, value) => {
+      if (typeof value === 'bigint') {
+        return value.toString();
+      }
+      if (value === undefined) {
+        return null;
+      }
+      return value;
+    });
+  } catch (error) {
+    return JSON.stringify({ error: 'Failed to stringify object' });
+  }
 }

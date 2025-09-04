@@ -57,7 +57,7 @@ async function performUpdateCheck(app: FastifyInstance): Promise<void> {
 
     // Store update info in app context
     // app.decorate('updateInfo', updateInfo);
-    (app as any).updateInfo = updateInfo;
+    app.updateInfo = updateInfo;
 
     logger.info('Update check completed - updateInfo: ' + JSON.stringify(updateInfo));
   } catch (error) {

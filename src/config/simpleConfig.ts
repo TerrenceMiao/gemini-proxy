@@ -28,7 +28,7 @@ function parseEnvArray(envVar: string | undefined, defaultValue: string[] = []):
 function parseEnvJSON<T>(envVar: string | undefined, defaultValue: T): T {
   if (!envVar) return defaultValue;
   try {
-    return JSON.parse(envVar);
+    return JSON.parse(envVar) as T;
   } catch {
     return defaultValue;
   }
@@ -47,23 +47,23 @@ function parseEnvNumber(envVar: string | undefined, defaultValue: number): numbe
 
 export const settings = {
   // Database configuration
-  DATABASE_TYPE: (process.env['DATABASE_TYPE'] || 'mysql') as 'mysql' | 'sqlite',
-  SQLITE_DATABASE: process.env['SQLITE_DATABASE'] || 'default_db',
-  MYSQL_HOST: process.env['MYSQL_HOST'] || '',
+  DATABASE_TYPE: (process.env['DATABASE_TYPE'] ?? 'mysql') as 'mysql' | 'sqlite',
+  SQLITE_DATABASE: process.env['SQLITE_DATABASE'] ?? 'default_db',
+  MYSQL_HOST: process.env['MYSQL_HOST'] ?? '',
   MYSQL_PORT: parseEnvNumber(process.env['MYSQL_PORT'], 3306),
-  MYSQL_USER: process.env['MYSQL_USER'] || '',
-  MYSQL_PASSWORD: process.env['MYSQL_PASSWORD'] || '',
-  MYSQL_DATABASE: process.env['MYSQL_DATABASE'] || '',
-  MYSQL_SOCKET: process.env['MYSQL_SOCKET'] || '',
+  MYSQL_USER: process.env['MYSQL_USER'] ?? '',
+  MYSQL_PASSWORD: process.env['MYSQL_PASSWORD'] ?? '',
+  MYSQL_DATABASE: process.env['MYSQL_DATABASE'] ?? '',
+  MYSQL_SOCKET: process.env['MYSQL_SOCKET'] ?? '',
 
   // API Keys
   API_KEYS: parseEnvArray(process.env['API_KEYS']),
   VERTEX_API_KEYS: parseEnvArray(process.env['VERTEX_API_KEYS']),
-  PAID_KEY: process.env['PAID_KEY'] || '',
+  PAID_KEY: process.env['PAID_KEY'] ?? '',
 
   // Model configuration
-  MODEL: process.env['MODEL'] || DEFAULT_MODEL,
-  CREATE_IMAGE_MODEL: process.env['CREATE_IMAGE_MODEL'] || DEFAULT_CREATE_IMAGE_MODEL,
+  MODEL: process.env['MODEL'] ?? DEFAULT_MODEL,
+  CREATE_IMAGE_MODEL: process.env['CREATE_IMAGE_MODEL'] ?? DEFAULT_CREATE_IMAGE_MODEL,
   FILTERED_MODELS: parseEnvArray(process.env['FILTERED_MODELS'], DEFAULT_FILTERED_MODELS),
 
   // Safety settings
@@ -82,19 +82,19 @@ export const settings = {
   STREAM_LONG_TEXT_THRESHOLD: parseEnvNumber(process.env['STREAM_LONG_TEXT_THRESHOLD'], DEFAULT_STREAM_LONG_TEXT_THRESHOLD),
 
   // File upload configuration
-  UPLOAD_HANDLER: (process.env['UPLOAD_HANDLER'] || 'INTERNAL') as 'SMMS' | 'PICGO' | 'CLOUDFLARE' | 'INTERNAL',
-  SMMS_API_KEY: process.env['SMMS_API_KEY'] || '',
-  PICGO_HOST: process.env['PICGO_HOST'] || '',
-  CLOUDFLARE_ACCOUNT_ID: process.env['CLOUDFLARE_ACCOUNT_ID'] || '',
-  CLOUDFLARE_API_TOKEN: process.env['CLOUDFLARE_API_TOKEN'] || '',
-  CLOUDFLARE_BUCKET_NAME: process.env['CLOUDFLARE_BUCKET_NAME'] || '',
-  CLOUDFLARE_CUSTOM_DOMAIN: process.env['CLOUDFLARE_CUSTOM_DOMAIN'] || '',
+  UPLOAD_HANDLER: (process.env['UPLOAD_HANDLER'] ?? 'INTERNAL') as 'SMMS' | 'PICGO' | 'CLOUDFLARE' | 'INTERNAL',
+  SMMS_API_KEY: process.env['SMMS_API_KEY'] ?? '',
+  PICGO_HOST: process.env['PICGO_HOST'] ?? '',
+  CLOUDFLARE_ACCOUNT_ID: process.env['CLOUDFLARE_ACCOUNT_ID'] ?? '',
+  CLOUDFLARE_API_TOKEN: process.env['CLOUDFLARE_API_TOKEN'] ?? '',
+  CLOUDFLARE_BUCKET_NAME: process.env['CLOUDFLARE_BUCKET_NAME'] ?? '',
+  CLOUDFLARE_CUSTOM_DOMAIN: process.env['CLOUDFLARE_CUSTOM_DOMAIN'] ?? '',
 
   // Authentication
   WEB_AUTH_ENABLED: parseEnvBoolean(process.env['WEB_AUTH_ENABLED'], true),
-  WEB_AUTH_TOKEN: process.env['WEB_AUTH_TOKEN'] || '',
+  WEB_AUTH_TOKEN: process.env['WEB_AUTH_TOKEN'] ?? '',
   API_AUTH_ENABLED: parseEnvBoolean(process.env['API_AUTH_ENABLED'], false),
-  API_AUTH_TOKEN: process.env['API_AUTH_TOKEN'] || '',
+  API_AUTH_TOKEN: process.env['API_AUTH_TOKEN'] ?? '',
 
   // Logging
   REQUEST_LOG_ENABLED: parseEnvBoolean(process.env['REQUEST_LOG_ENABLED'], true),
@@ -108,13 +108,13 @@ export const settings = {
   LOG_CLEANUP_INTERVAL: parseEnvNumber(process.env['LOG_CLEANUP_INTERVAL'], 3600),
 
   // Proxy configuration
-  PROXY_HOST: process.env['PROXY_HOST'] || '',
+  PROXY_HOST: process.env['PROXY_HOST'] ?? '',
   PROXY_PORT: parseEnvNumber(process.env['PROXY_PORT'], 8080),
-  PROXY_USERNAME: process.env['PROXY_USERNAME'] || '',
-  PROXY_PASSWORD: process.env['PROXY_PASSWORD'] || '',
+  PROXY_USERNAME: process.env['PROXY_USERNAME'] ?? '',
+  PROXY_PASSWORD: process.env['PROXY_PASSWORD'] ?? '',
 
   // Other settings
-  USER_AGENT: process.env['USER_AGENT'] || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+  USER_AGENT: process.env['USER_AGENT'] ?? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
 };
 
 export async function syncInitialSettings(): Promise<void> {

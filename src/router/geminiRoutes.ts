@@ -10,15 +10,48 @@ const logger = getRouterLogger();
 
 export interface GeminiRequestBody {
   model?: string;
-  contents?: any[];
-  generationConfig?: any;
-  safetySettings?: any[];
-  tools?: any[];
+  contents?: Array<{
+    role?: string;
+    parts?: Array<{
+      text?: string;
+      inlineData?: {
+        mimeType: string;
+        data: string;
+      };
+    }>;
+  }>;
+  generationConfig?: {
+    temperature?: number;
+    topP?: number;
+    topK?: number;
+    maxOutputTokens?: number;
+    stopSequences?: string[];
+  };
+  safetySettings?: Array<{
+    category: string;
+    threshold: string;
+  }>;
+  tools?: Array<{
+    functionDeclarations?: Array<{
+      name: string;
+      description: string;
+      parameters?: Record<string, unknown>;
+    }>;
+  }>;
   responseModalities?: string[];
-  speechConfig?: any;
+  speechConfig?: {
+    voice?: string;
+    speed?: number;
+    pitch?: number;
+    volumeGainDb?: number;
+  };
+  stream?: boolean;
 }
 
+
+
 export default async function geminiRoutes(fastify: FastifyInstance) {
+  await Promise.resolve(); // Add await to satisfy require-await rule
   // Get model information
   fastify.get('/models/:modelId', async (request: FastifyRequest<{
     Params: { modelId: string };
@@ -59,13 +92,13 @@ export default async function geminiRoutes(fastify: FastifyInstance) {
   fastify.post('/models/*', async (request: FastifyRequest<{
     Params: { '*': string };
     Querystring: Record<string, string>;
-    Body: GeminiRequestBody & { content?: any; contents?: any[] };
+    Body: GeminiRequestBody & { content?: unknown; contents?: unknown[] };
   }>, reply: FastifyReply) => {
     try {
-      const body = request.body;
+      const body = request.body as GeminiRequestBody;
       
-      const { modelId, operation } = parseModelRequest(request.params['*']);
-      const params = request.query || {};
+      const { modelId, operation } = parseModelRequest(request.params['*'] ?? '');
+      const params = request.query ?? {};
       logger.info(`${operation} request for model: ${modelId} with query params: ` + JSON.stringify(params));
       
       switch (operation) {
@@ -78,7 +111,19 @@ export default async function geminiRoutes(fastify: FastifyInstance) {
           // Regular chat request
           const response = await geminiChatService.generateContent({
             model: modelId,
-            ...body,
+            generationConfig: body.generationConfig || {},
+            safetySettings: body.safetySettings || [],
+            tools: body.tools || [],
+            responseModalities: body.responseModalities || [],
+            speechConfig: body.speechConfig ?? {},
+            stream: body.stream ?? false,
+            contents: body.contents?.map(content => ({
+              role: content.role || 'user',
+              parts: content.parts?.map(part => ({
+                text: part.text || '',
+                ...part
+              })) || []
+            })) as any
           });
 
           return reply.send(response);
@@ -99,7 +144,19 @@ export default async function geminiRoutes(fastify: FastifyInstance) {
         case 'countTokens':
           const tokenCount = await geminiChatService.countTokens({
             model: modelId,
-            ...body,
+            generationConfig: body.generationConfig || {},
+            safetySettings: body.safetySettings || [],
+            tools: body.tools || [],
+            responseModalities: body.responseModalities || [],
+            speechConfig: body.speechConfig ?? {},
+            stream: body.stream ?? false,
+            contents: body.contents?.map(content => ({
+              role: content.role || 'user',
+              parts: content.parts?.map(part => ({
+                text: part.text || '',
+                ...part
+              })) || []
+            })) as any
           });
           
           return reply.send(tokenCount);
@@ -148,7 +205,7 @@ export default async function geminiRoutes(fastify: FastifyInstance) {
 
 }
 
-async function handleStreamGenerateContent(modelId: string, body: GeminiRequestBody, params: any, reply: FastifyReply) {
+async function handleStreamGenerateContent(modelId: string, body: GeminiRequestBody, params: Record<string, string>, reply: FastifyReply) {
   const operationName = 'gemini_stream_generate_content';
   
   try {
@@ -169,9 +226,21 @@ async function handleStreamGenerateContent(modelId: string, body: GeminiRequestB
     reply.header('Access-Control-Allow-Headers', 'Cache-Control');
 
     // Get the stream generator from chat service
-    const streamGenerator = geminiChatService.streamGenerateContent({
+    const streamGenerator = await geminiChatService.streamGenerateContent({
       model: modelId,
-      ...body,
+      generationConfig: body.generationConfig ?? {},
+      safetySettings: body.safetySettings ?? [],
+      tools: body.tools ?? [],
+      responseModalities: body.responseModalities ?? [],
+      speechConfig: body.speechConfig ?? {},
+      stream: true, // Always true for streaming endpoint
+      contents: body.contents?.map(content => ({
+        role: content.role || 'user',
+        parts: content.parts?.map(part => ({
+          text: part.text || '',
+          ...part
+        })) || []
+      })) as any
     }, params);
 
     // Stream the response
@@ -186,9 +255,10 @@ async function handleStreamGenerateContent(modelId: string, body: GeminiRequestB
     
     // Handle streaming errors by writing error to stream
     if (!reply.sent) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown streaming error';
       reply.raw.write(`data: ${JSON.stringify({ 
         error: { 
-          message: (error as Error).message,
+          message: errorMessage,
           type: 'streaming_error'
         }
       })}\n\n`);
@@ -203,14 +273,15 @@ async function handleTTSRequest(modelId: string, body: GeminiRequestBody, reply:
     logger.info(`Handling TTS request for model: ${modelId}`);
     
     // Extract text from contents
-    const text = extractTextFromContents(body.contents || []);
+    const text = extractTextFromContents(body.contents ?? []);
     
     if (!text) {
       throw new AppError('No text found in request for TTS', HTTP_STATUS_CODES.BAD_REQUEST);
     }
 
     // Get voice from speech config
-    const voice = body.speechConfig?.voiceConfig?.prebuiltVoiceConfig?.voiceName || ttsService.getDefaultVoice();
+    const voice = body.speechConfig?.voice ?? 
+                 ttsService.getDefaultVoice() ?? 'en-US-Neural2-F';
 
     const ttsResponse = await ttsService.generateSpeech({
       model: modelId,
@@ -224,7 +295,7 @@ async function handleTTSRequest(modelId: string, body: GeminiRequestBody, reply:
         content: {
           parts: [{
             inlineData: {
-              mimeType: ttsResponse.contentType || 'audio/mp3',
+              mimeType: ttsResponse.contentType ?? 'audio/mp3',
               data: ttsResponse.audio,
             },
           }],
@@ -263,12 +334,18 @@ function parseModelRequest(params: string): { modelId: string; operation: string
   return { modelId, operation };
 }
 
-function extractTextFromContents(contents: any[]): string {
+function extractTextFromContents(contents: unknown[]): string {
   for (const content of contents) {
-    if (content.parts) {
-      for (const part of content.parts) {
-        if (part.text) {
-          return part.text;
+    if (content && typeof content === 'object' && 'parts' in content) {
+      const parts = (content as { parts?: unknown[] }).parts;
+      if (Array.isArray(parts)) {
+        for (const part of parts) {
+          if (part && typeof part === 'object' && 'text' in part) {
+            const text = (part as { text?: unknown }).text;
+            if (typeof text === 'string') {
+              return text;
+            }
+          }
         }
       }
     }

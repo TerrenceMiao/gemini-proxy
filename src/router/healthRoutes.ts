@@ -7,6 +7,9 @@ import { getCurrentVersion } from '@/utils/helpers';
 const logger = getRouterLogger();
 
 export default async function healthRoutes(fastify: FastifyInstance) {
+  // Ensure key manager is initialized
+  await getKeyManagerInstance();
+  
   // Basic health check
   fastify.get('/health', async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
@@ -15,7 +18,7 @@ export default async function healthRoutes(fastify: FastifyInstance) {
         timestamp: new Date().toISOString(),
         uptime: Math.floor(process.uptime()),
         version: getCurrentVersion(),
-        environment: process.env['NODE_ENV'] || 'development',
+        environment: process.env['NODE_ENV'] ?? 'development',
       };
 
       return reply.send(health);
@@ -87,7 +90,7 @@ export default async function healthRoutes(fastify: FastifyInstance) {
         timestamp: new Date().toISOString(),
         uptime: Math.floor(process.uptime()),
         version: getCurrentVersion(),
-        environment: process.env['NODE_ENV'] || 'development',
+        environment: process.env['NODE_ENV'] ?? 'development',
         responseTime: totalResponseTime,
         checks: {
           database: {

@@ -20,15 +20,32 @@ export interface TTSResponse {
 
 export interface GeminiTTSRequest {
   model: string;
-  contents: any[];
+  contents: GeminiContent[];
   responseModalities: string[];
   speechConfig?: {
-    voiceConfig?: {
-      prebuiltVoiceConfig?: {
-        voiceName: string;
-      };
-    };
+    voice?: string;
+    speed?: number;
+    pitch?: number;
+    volumeGainDb?: number;
   };
+}
+
+export interface GeminiContent {
+  role: string;
+  parts: Array<{ text: string }>;
+}
+
+export interface GeminiTTSResponse {
+  candidates?: Array<{
+    content?: {
+      parts?: Array<{
+        inlineData?: {
+          mimeType: string;
+          data: string;
+        };
+      }>;
+    };
+  }>;
 }
 
 export class TTSService {
@@ -51,12 +68,8 @@ export class TTSService {
         ],
         responseModalities: ['AUDIO'],
         speechConfig: request.voice ? {
-          voiceConfig: {
-            prebuiltVoiceConfig: {
-              voiceName: request.voice,
-            },
-          },
-        } : undefined as any,
+          voice: request.voice,
+        } : {},
       };
 
       const response = await geminiChatService.generateContent(geminiRequest);
@@ -96,12 +109,8 @@ export class TTSService {
         ],
         responseModalities: ['AUDIO'],
         speechConfig: request.voice ? {
-          voiceConfig: {
-            prebuiltVoiceConfig: {
-              voiceName: request.voice,
-            },
-          },
-        } : undefined as any,
+          voice: request.voice,
+        } : {},
       };
 
       const streamGenerator = geminiChatService.streamGenerateContent(geminiRequest, {});
@@ -123,7 +132,7 @@ export class TTSService {
     }
   }
 
-  private extractAudioFromResponse(response: any): TTSResponse {
+  private extractAudioFromResponse(response: GeminiTTSResponse): TTSResponse {
     // Extract audio data from Gemini response
     // This is a simplified implementation - actual structure may vary
     if (response.candidates?.[0]?.content) {
@@ -145,7 +154,7 @@ export class TTSService {
     throw new ExternalServiceError('No audio data found in response');
   }
 
-  private extractAudioChunkFromResponse(chunk: any): Buffer | null {
+  private extractAudioChunkFromResponse(chunk: GeminiTTSResponse): Buffer | null {
     // Extract audio chunk from streaming response
     if (chunk.candidates?.[0]?.content) {
       const content = chunk.candidates[0].content;
@@ -162,7 +171,7 @@ export class TTSService {
     return null;
   }
 
-  async getSupportedVoices(): Promise<string[]> {
+  getSupportedVoices(): string[] {
     // Return supported voice names
     // This would typically come from the API or configuration
     return [
@@ -175,8 +184,8 @@ export class TTSService {
     ];
   }
 
-  async validateVoice(voiceName: string): Promise<boolean> {
-    const supportedVoices = await this.getSupportedVoices();
+  validateVoice(voiceName: string): boolean {
+    const supportedVoices = this.getSupportedVoices();
     return supportedVoices.includes(voiceName);
   }
 
@@ -192,11 +201,10 @@ export class TTSService {
     return this.getSupportedFormats().includes(format);
   }
 
-  isTTSRequest(request: any): boolean {
+  isTTSRequest(request: { responseModalities?: string[] }): boolean {
     // Check if request is a TTS request based on response modalities
-    return request.responseModalities && 
-           Array.isArray(request.responseModalities) && 
-           request.responseModalities.includes('AUDIO');
+    const modalities = request.responseModalities || [];
+    return Array.isArray(modalities) && modalities.includes('AUDIO');
   }
 
   isTTSModel(modelName: string): boolean {

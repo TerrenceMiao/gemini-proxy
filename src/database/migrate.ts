@@ -34,7 +34,7 @@ function set_database_url(): void {
 }
 
 export async function runMigrations(options: MigrationOptions = {}): Promise<void> {
-  const { force = false, acceptDataLoss = false, environment = process.env['NODE_ENV'] as any || 'development' } = options;
+  const { force = false, acceptDataLoss = false, environment = process.env['NODE_ENV'] ?? 'development' } = options;
 
   try {
     set_database_url();
@@ -70,7 +70,7 @@ export async function runMigrations(options: MigrationOptions = {}): Promise<voi
     const genResult = await execAsync('npx prisma generate');
     logger.info({ result: genResult.stdout }, 'Prisma client generated:');
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error({ err: error }, 'Migration failed:');
     throw error;
   }
@@ -88,7 +88,7 @@ export async function createMigration(name: string): Promise<void> {
     }
     
     logger.info({ result: result.stdout }, 'Migration created:');
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error({ err: error }, 'Failed to create migration:');
     throw error;
   }
@@ -106,7 +106,7 @@ export async function resetDatabase(): Promise<void> {
     }
     
     logger.info({ result: result.stdout }, 'Database reset completed:');
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error({ err: error }, 'Failed to reset database:');
     throw error;
   }
@@ -126,7 +126,7 @@ export async function validateSchema(): Promise<boolean> {
     
     logger.info({ result: result.stdout }, 'Schema validation passed:');
     return true;
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error({ err: error }, 'Schema validation failed:');
     return false;
   }
@@ -166,7 +166,7 @@ if (require.main === module) {
           break;
         
         default:
-          console.log(`
+          logger.info(`
 Usage: npm run migrate <command> [options]
 
 Commands:
@@ -183,7 +183,7 @@ Options:
           process.exit(1);
       }
     } catch (error) {
-      console.error('Migration command failed:', error);
+      logger.error({ err: error }, 'Migration command failed:');
       process.exit(1);
     }
   }

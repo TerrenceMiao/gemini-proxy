@@ -29,7 +29,7 @@ export class ApiClient {
   private createAxiosInstance(): AxiosInstance {
     const axiosConfig: AxiosRequestConfig = {
       baseURL: this.config.baseURL,
-      timeout: this.config.timeout || settings.TIMEOUT * 1000,
+      timeout: this.config.timeout ?? settings.TIMEOUT * 1000,
       headers: {
         'Content-Type': 'application/json',
         'User-Agent': settings.USER_AGENT,
@@ -63,9 +63,10 @@ export class ApiClient {
         }, `Making request to ${config.url}`);
         return config;
       },
-      (error) => {
-        logger.error({ err: error }, 'Request interceptor error:');
-        return Promise.reject(error);
+      (error: unknown) => {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown request error';
+        logger.error({ err: errorMessage }, 'Request interceptor error:');
+        return Promise.reject(new Error(errorMessage));
       }
     );
 
@@ -78,21 +79,32 @@ export class ApiClient {
         }, `Response received from ${response.config.url}`);
         return response;
       },
-      (error) => {
+      (error: unknown) => {
+        // Use type-safe property access with optional chaining
+        const errorObj = error as Record<string, unknown>;
+        
         logger.error({
-          message: error.message,
-          status: error.response?.status,
-          statusText: error.response?.statusText,
-          url: error.config?.url,
+          message: typeof errorObj['message'] === 'string' ? errorObj['message'] : 'Unknown error',
+          status: typeof errorObj['response'] === 'object' && errorObj['response'] !== null 
+            ? (errorObj['response'] as Record<string, unknown>)['status']
+            : undefined,
+          statusText: typeof errorObj['response'] === 'object' && errorObj['response'] !== null 
+            ? (errorObj['response'] as Record<string, unknown>)['statusText']
+            : undefined,
+          url: typeof errorObj['config'] === 'object' && errorObj['config'] !== null 
+            ? (errorObj['config'] as Record<string, unknown>)['url']
+            : undefined,
         }, 'Response interceptor error:');
-        return Promise.reject(error);
+        
+        const errorMessage = typeof errorObj['message'] === 'string' ? errorObj['message'] : 'Unknown response error';
+        return Promise.reject(new Error(errorMessage));
       }
     );
 
     return instance;
   }
 
-  async get<T = any>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+  async get<T = unknown>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
     try {
       return await this.client.get<T>(url, config);
     } catch (error) {
@@ -101,7 +113,7 @@ export class ApiClient {
     }
   }
 
-  async post<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+  async post<T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
     try {
       return await this.client.post<T>(url, data, config);
     } catch (error) {
@@ -110,7 +122,7 @@ export class ApiClient {
     }
   }
 
-  async put<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+  async put<T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
     try {
       return await this.client.put<T>(url, data, config);
     } catch (error) {
@@ -119,7 +131,7 @@ export class ApiClient {
     }
   }
 
-  async patch<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+  async patch<T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
     try {
       return await this.client.patch<T>(url, data, config);
     } catch (error) {
@@ -128,7 +140,7 @@ export class ApiClient {
     }
   }
 
-  async delete<T = any>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+  async delete<T = unknown>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
     try {
       return await this.client.delete<T>(url, config);
     } catch (error) {
@@ -149,37 +161,48 @@ export class ApiClient {
     }
   }
 
-  private handleError(error: any, method: string, url: string): void {
+  private handleError(error: unknown, method: string, url: string): void {
+    interface AxiosErrorType {
+      message?: string;
+      response?: {
+        status?: number;
+        statusText?: string;
+        data?: unknown;
+      };
+      request?: unknown;
+    }
+    
+    const axiosError = error as AxiosErrorType;
     const errorInfo = {
       method,
       url,
-      message: error.message,
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      data: error.response?.data,
+      message: axiosError.message ?? 'Unknown error',
+      status: axiosError.response?.status,
+      statusText: axiosError.response?.statusText,
+      data: axiosError.response?.data,
     };
 
     logger.error(errorInfo, `API request failed: ${method} ${url}`);
 
     // Transform axios errors to our custom errors
-    if (error.response) {
+    if (axiosError.response) {
       // Server responded with error status
       throw new ExternalServiceError(
-        `API request failed: ${error.response.status} ${error.response.statusText}`
+        `API request failed: ${axiosError.response.status} ${axiosError.response.statusText}`
       );
-    } else if (error.request) {
+    } else if (axiosError.request) {
       // Request was made but no response received
       throw new ExternalServiceError('No response received from API');
     } else {
       // Something else happened
-      throw new ExternalServiceError(`Request setup error: ${error.message}`);
+      throw new ExternalServiceError(`Request setup error: ${axiosError.message ?? 'Unknown error'}`);
     }
   }
 
-  private sanitizeHeaders(headers: any): any {
-    if (!headers) return {};
+  private sanitizeHeaders(headers: unknown): Record<string, unknown> {
+    if (!headers || typeof headers !== 'object') return {};
     
-    const sanitized = { ...headers };
+    const sanitized = { ...headers } as Record<string, unknown>;
     
     // Remove sensitive headers for logging
     const sensitiveHeaders = ['authorization', 'x-goog-api-key', 'x-api-key'];

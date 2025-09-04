@@ -83,7 +83,7 @@ export class FilesService {
       // Save to database
       const fileRecord = await databaseService.createFileUpload({
         filename,
-        originalName: request.originalName || request.filename,
+        originalName: request.originalName ?? request.filename,
         mimeType: request.mimeType,
         size: BigInt(request.size),
         url,
@@ -103,7 +103,7 @@ export class FilesService {
         originalName: fileRecord.originalName,
         mimeType: fileRecord.mimeType,
         size: Number(fileRecord.size),
-        url: fileRecord.url || '',
+        url: fileRecord.url ?? '',
         provider: fileRecord.provider,
         uploadedAt: fileRecord.uploadedAt,
       };
@@ -185,10 +185,10 @@ export class FilesService {
     }
   }
 
-  async processFileForGemini(fileBuffer: Buffer, mimeType: string): Promise<{
+  processFileForGemini(fileBuffer: Buffer, mimeType: string): {
     mimeType: string;
     data: string;
-  }> {
+  } {
     try {
       // Convert file to base64 for Gemini API
       const base64Data = fileBuffer.toString('base64');
@@ -235,7 +235,7 @@ export class FilesService {
   private generateFilename(originalFilename: string): string {
     const timestamp = Date.now();
     const randomId = generateId();
-    const extension = originalFilename.split('.').pop() || '';
+    const extension = originalFilename.split('.').pop() ?? '';
     return `${timestamp}_${randomId}.${extension}`;
   }
 
@@ -254,19 +254,19 @@ export class FilesService {
     }
   }
 
-  private async uploadToSMMS(filename: string): Promise<string> {
+  private uploadToSMMS(filename: string): string {
     // TODO: Implement SMMS upload
     logger.warn('SMMS upload not implemented yet');
     return `/files/${filename}`;
   }
 
-  private async uploadToPicGo(filename: string): Promise<string> {
+  private uploadToPicGo(filename: string): string {
     // TODO: Implement PicGo upload
     logger.warn('PicGo upload not implemented yet');
     return `/files/${filename}`;
   }
 
-  private async uploadToCloudflare(filename: string): Promise<string> {
+  private uploadToCloudflare(filename: string): string {
     // TODO: Implement Cloudflare upload
     logger.warn('Cloudflare upload not implemented yet');
     return `/files/${filename}`;
@@ -288,7 +288,7 @@ export class FilesService {
     return SUPPORTED_VIDEO_FORMATS.includes(mimeType);
   }
 
-  async getFileStats(): Promise<{
+  getFileStats(): Promise<{
     totalFiles: number;
     totalSize: number;
     averageSize: number;
@@ -296,18 +296,18 @@ export class FilesService {
     try {
       // TODO: Implement file stats query
       logger.warn('File stats not implemented yet');
-      return {
+      return Promise.resolve({
         totalFiles: 0,
         totalSize: 0,
         averageSize: 0,
-      };
+      });
     } catch (error) {
       logger.error({ err: error }, 'Failed to get file stats:');
-      return {
+      return Promise.resolve({
         totalFiles: 0,
         totalSize: 0,
         averageSize: 0,
-      };
+      });
     }
   }
 }

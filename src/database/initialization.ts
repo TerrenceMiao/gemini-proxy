@@ -84,7 +84,7 @@ async function runDatabaseMigrations(): Promise<void> {
     const genResult = await execAsync('npx prisma generate');
     logger.info({ result: genResult.stdout }, 'Prisma client generated:');
     
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error({ err: error }, 'Failed to run database migrations:');
     
     // If migration fails, try to continue with db push as fallback

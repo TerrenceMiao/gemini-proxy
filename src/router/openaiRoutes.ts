@@ -5,6 +5,14 @@ import { ttsService } from '@/service/tts/ttsService';
 import { modelService } from '@/service/model/modelService';
 import { AppError } from '@/exception/exceptions';
 import { HTTP_STATUS_CODES } from '@/core/constants';
+import type { GeminiRequest, GeminiResponse } from '@/service/chat/geminiChatService';
+
+interface GeminiCandidate {
+  content?: {
+    parts?: Array<{ text?: string }>;
+  };
+  finishReason?: string;
+}
 
 const logger = getRouterLogger();
 
@@ -31,7 +39,7 @@ export interface OpenAITTSRequest {
   speed?: number;
 }
 
-export default async function openaiRoutes(fastify: FastifyInstance) {
+export default function openaiRoutes(fastify: FastifyInstance) {
   // Chat completions
   fastify.post('/chat/completions', async (request: FastifyRequest<{
     Body: OpenAIChatRequest;
@@ -55,7 +63,7 @@ export default async function openaiRoutes(fastify: FastifyInstance) {
       
       return reply.send(openaiResponse);
 
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error({ err: error }, 'Failed to process chat completions:');
       throw error;
     }
@@ -83,7 +91,7 @@ export default async function openaiRoutes(fastify: FastifyInstance) {
         data: openaiModels,
       });
 
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error({ err: error }, 'Failed to get OpenAI models list:');
       throw error;
     }
@@ -113,7 +121,7 @@ export default async function openaiRoutes(fastify: FastifyInstance) {
         parent: null,
       });
 
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error({ err: error }, 'Failed to get OpenAI model info:');
       throw error;
     }
@@ -131,13 +139,13 @@ export default async function openaiRoutes(fastify: FastifyInstance) {
       const ttsResponse = await ttsService.generateSpeech(body);
       
       // Return audio file
-      reply.type(ttsResponse.contentType || 'audio/mp3');
-      reply.header('Content-Length', ttsResponse.size?.toString() || '0');
+      reply.type(ttsResponse.contentType ?? 'audio/mp3');
+      reply.header('Content-Length', ttsResponse.size?.toString() ?? '0');
       
-      const audioBuffer = Buffer.from(ttsResponse.audio || '', 'base64');
+      const audioBuffer = Buffer.from(ttsResponse.audio ?? '', 'base64');
       return reply.send(audioBuffer);
 
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error({ err: error }, 'Failed to process TTS request:');
       throw error;
     }
@@ -173,20 +181,25 @@ export default async function openaiRoutes(fastify: FastifyInstance) {
         },
       });
 
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error({ err: error }, 'Failed to process embeddings request:');
       throw error;
     }
   });
 }
 
-function convertOpenAIToGemini(request: OpenAIChatRequest): any {
+function convertOpenAIToGemini(request: OpenAIChatRequest): GeminiRequest {
   const contents = request.messages.map(message => ({
     role: message.role === 'assistant' ? 'model' : message.role,
     parts: [{ text: message.content }],
   }));
 
-  const generationConfig: any = {};
+  const generationConfig: Partial<{
+    maxOutputTokens: number;
+    temperature: number;
+    topP: number;
+    stopSequences: string[];
+  }> = {};
   
   if (request.max_tokens) {
     generationConfig.maxOutputTokens = request.max_tokens;
@@ -211,17 +224,17 @@ function convertOpenAIToGemini(request: OpenAIChatRequest): any {
   };
 }
 
-function convertGeminiToOpenAI(response: any, model: string): any {
+function convertGeminiToOpenAI(response: GeminiResponse, model: string): unknown {
   const choices = [];
   
   if (response.candidates && response.candidates.length > 0) {
     for (let i = 0; i < response.candidates.length; i++) {
-      const candidate = response.candidates[i];
+      const candidate = response.candidates[i] as GeminiCandidate;
       let content = '';
       
       if (candidate.content?.parts) {
         content = candidate.content.parts
-          .map((part: any) => part.text || '')
+          .map(part => part.text ?? '')
           .join('');
       }
       
@@ -231,15 +244,15 @@ function convertGeminiToOpenAI(response: any, model: string): any {
           role: 'assistant',
           content,
         },
-        finish_reason: convertFinishReason(candidate.finishReason),
+        finish_reason: convertFinishReason(candidate.finishReason ?? ''),
       });
     }
   }
 
   const usage = {
-    prompt_tokens: response.usageMetadata?.promptTokenCount || 0,
-    completion_tokens: response.usageMetadata?.candidatesTokenCount || 0,
-    total_tokens: response.usageMetadata?.totalTokenCount || 0,
+    prompt_tokens: response.usageMetadata?.promptTokenCount ?? 0,
+    completion_tokens: response.usageMetadata?.candidatesTokenCount ?? 0,
+    total_tokens: response.usageMetadata?.totalTokenCount ?? 0,
   };
 
   return {
@@ -267,7 +280,7 @@ function convertFinishReason(geminiReason: string): string {
   }
 }
 
-async function handleStreamingChat(geminiRequest: any, reply: FastifyReply) {
+async function handleStreamingChat(geminiRequest: GeminiRequest, reply: FastifyReply) {
   try {
     // Set up streaming response
     reply.type('text/event-stream');
@@ -279,31 +292,31 @@ async function handleStreamingChat(geminiRequest: any, reply: FastifyReply) {
     const streamGenerator = geminiChatService.streamGenerateContent(geminiRequest, {});
     
     for await (const chunk of streamGenerator) {
-      const openaiChunk = convertGeminiChunkToOpenAI(chunk, geminiRequest.model);
+      const openaiChunk = convertGeminiChunkToOpenAI(chunk, geminiRequest.model || '');
       reply.raw.write(`data: ${JSON.stringify(openaiChunk)}\n\n`);
     }
 
     reply.raw.write('data: [DONE]\n\n');
     reply.raw.end();
 
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error({ err: error }, 'Failed to handle streaming chat:');
-    reply.raw.write(`data: ${JSON.stringify({ error: (error as Error).message })}\n\n`);
+    reply.raw.write(`data: ${JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' })}\n\n`);
     reply.raw.end();
   }
 }
 
-function convertGeminiChunkToOpenAI(chunk: any, model: string): any {
+function convertGeminiChunkToOpenAI(chunk: GeminiResponse, model: string): unknown {
   const choices = [];
   
   if (chunk.candidates && chunk.candidates.length > 0) {
     for (let i = 0; i < chunk.candidates.length; i++) {
-      const candidate = chunk.candidates[i];
+      const candidate = chunk.candidates[i] as GeminiCandidate;
       let content = '';
       
       if (candidate.content?.parts) {
         content = candidate.content.parts
-          .map((part: any) => part.text || '')
+          .map(part => part.text ?? '')
           .join('');
       }
       

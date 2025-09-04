@@ -4,17 +4,17 @@ import { settings } from '@/config/config';
 
 const logger = getMiddlewareLogger();
 
-export async function responseLoggingMiddleware(
+export function responseLoggingMiddleware(
   request: FastifyRequest,
   reply: FastifyReply
-): Promise<void> {
+): void {
   if (!settings.REQUEST_LOG_ENABLED) {
     return;
   }
 
-  const startTime = (request as any).startTime;
-  const clientIp = (request as any).clientIp;
-  const userAgent = (request as any).userAgent;
+  const startTime = (request as { startTime?: number }).startTime;
+  const clientIp = (request as { clientIp?: string }).clientIp;
+  const userAgent = (request as { userAgent?: string }).userAgent;
 
   if (startTime) {
     const endTime = Date.now();

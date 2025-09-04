@@ -1,22 +1,55 @@
 import axios from 'axios';
 import { getServiceLogger } from '@/log/logger';
 import { settings } from '@/config/config';
-import { getKeyManagerInstance } from '@/service/key/keyManager';
+import { getKeyManagerInstance, type KeyManager } from '@/service/key/keyManager';
 import { databaseService } from '@/database/services';
 import { ExternalServiceError, AppError } from '@/exception/exceptions';
 import { HTTP_STATUS_CODES } from '@/core/constants';
+import { safeJsonStringify } from '@/utils/helpers';
 
 const logger = getServiceLogger();
 
+export interface GeminiMessage {
+  role: string;
+  content: string;
+}
+
+export interface GeminiContent {
+  role: string;
+  parts: Array<{ text: string }>;
+}
+
+export interface GenerationConfig {
+  temperature?: number;
+  maxOutputTokens?: number;
+  topP?: number;
+  stopSequences?: string[];
+}
+
+export interface ToolFunctionDeclaration {
+  name: string;
+  description?: string;
+  parameters?: Record<string, unknown>;
+}
+
+export interface Tool {
+  functionDeclarations?: ToolFunctionDeclaration[];
+}
+
 export interface GeminiRequest {
   model?: string;
-  messages?: any[];
-  contents?: any[];
-  generationConfig?: any;
+  messages?: GeminiMessage[];
+  contents?: GeminiContent[];
+  generationConfig?: GenerationConfig;
   safetySettings?: any[];
-  tools?: any[];
+  tools?: Tool[];
   responseModalities?: string[];
-  speechConfig?: any;
+  speechConfig?: {
+    voice?: string;
+    speed?: number;
+    pitch?: number;
+    volumeGainDb?: number;
+  };
   stream?: boolean;
 }
 
@@ -27,12 +60,42 @@ export interface GeminiResponse {
     candidatesTokenCount?: number;
     totalTokenCount?: number;
   };
-  error?: any;
+}
+
+export interface GeminiPayload {
+  contents?: GeminiContent[];
+  generationConfig?: GenerationConfig;
+  safetySettings?: any[];
+  tools?: Tool[];
+  responseModalities?: string[];
+  speechConfig?: {
+    voice?: string;
+    speed?: number;
+    pitch?: number;
+    volumeGainDb?: number;
+  };
+  error?: {
+    message?: string;
+    response?: {
+      status?: number;
+      data?: unknown;
+    };
+  };
+}
+
+interface AxiosErrorResponse {
+  name: string;
+  message: string;
+  response?: {
+    status?: number;
+    data?: unknown;
+  };
+  config?: unknown;
 }
 
 export class GeminiChatService {
   private baseUrl = 'https://generativelanguage.googleapis.com/v1beta';
-  private keyManager: any;
+  private keyManager: KeyManager | null = null;
 
   constructor() {
     this.initializeKeyManager();
@@ -49,16 +112,16 @@ export class GeminiChatService {
           await this.initializeKeyManager();
         }
 
-        currentKey = this.keyManager.getNextKey();
+        currentKey = this.keyManager?.getNextKey() ?? null;
         if (!currentKey) {
           throw new AppError('No available API keys in GeminiChatService countTokens()', HTTP_STATUS_CODES.SERVICE_UNAVAILABLE);
         }
 
-        const model = payload.model || settings.MODEL;
+        const model = payload.model ?? settings.MODEL;
         const url = `${this.baseUrl}/models/${model}:countTokens`;
         
         // For token counting, we only need the contents
-        const requestPayload = { contents: payload.contents || [] };
+        const requestPayload = { contents: payload.contents ?? [] };
 
         const response = await axios.post<{ totalTokens: number }>(url, requestPayload, {
           headers: {
@@ -78,8 +141,8 @@ export class GeminiChatService {
             geminiKey: this.sanitizeKey(currentKey),
             modelName: model,
             requestType: 'count_tokens',
-            requestMsg: requestPayload,
-            responseMsg: response.data,
+            requestMsg: safeJsonStringify(requestPayload),
+            responseMsg: safeJsonStringify(response.data),
             responseTime,
           });
         }
@@ -92,41 +155,42 @@ export class GeminiChatService {
 
         return response.data;
 
-      } catch (error: any) {
-        lastError = error;
+      } catch (error: unknown) {
+        const err = error as AxiosErrorResponse;
+        lastError = err;
         
-        if (currentKey) {
+        if (currentKey && this.keyManager) {
           this.keyManager.markKeyAsFailed(currentKey);
           
           // Log error
           if (settings.ERROR_LOG_ENABLED) {
             await databaseService.createErrorLog({
               geminiKey: this.sanitizeKey(currentKey),
-              modelName: payload.model || settings.MODEL,
+              modelName: payload.model ?? settings.MODEL,
               errorType: 'gemini-count-tokens',
-              errorLog: error.message,
-              errorCode: error.response?.status,
-              requestMsg: payload,
+              errorLog: err.message,
+              errorCode: err.response?.status ?? 0,
+              requestMsg: safeJsonStringify(payload),
             });
           }
         }
 
         logger.error({
-          error: error.message,
-          status: error.response?.status,
+          error: err.message,
+          status: err.response?.status,
           key: currentKey ? this.sanitizeKey(currentKey) : 'none',
         }, `Token count failed (attempt ${attempt + 1}/${settings.MAX_RETRIES}):`);
 
         // Don't retry on certain errors
-        if (error.response?.status === HTTP_STATUS_CODES.BAD_REQUEST || 
-            error.response?.status === HTTP_STATUS_CODES.UNAUTHORIZED) {
+        if (err.response?.status === HTTP_STATUS_CODES.BAD_REQUEST || 
+            err.response?.status === HTTP_STATUS_CODES.UNAUTHORIZED) {
           break;
         }
       }
     }
 
     throw new ExternalServiceError(
-      lastError?.message || 'Failed to count tokens after all retries'
+      lastError?.message ?? 'Failed to count tokens after all retries'
     );
   }
 
@@ -145,12 +209,12 @@ export class GeminiChatService {
           await this.initializeKeyManager();
         }
 
-        currentKey = this.keyManager.getNextKey();
+        currentKey = this.keyManager?.getNextKey() ?? null;
         if (!currentKey) {
           throw new AppError('No available API keys in GeminiChatService generateContent()', HTTP_STATUS_CODES.SERVICE_UNAVAILABLE);
         }
 
-        const model = payload.model || settings.MODEL;
+        const model = payload.model ?? settings.MODEL;
         const url = `${this.baseUrl}/models/${model}:generateContent`;
         
         const requestPayload = this.buildPayload(payload);
@@ -173,8 +237,8 @@ export class GeminiChatService {
             geminiKey: this.sanitizeKey(currentKey),
             modelName: model,
             requestType: 'chat',
-            requestMsg: requestPayload,
-            responseMsg: response.data,
+            requestMsg: safeJsonStringify(requestPayload),
+            responseMsg: safeJsonStringify(response.data),
             responseTime,
           });
         }
@@ -187,45 +251,46 @@ export class GeminiChatService {
 
         return response.data;
 
-      } catch (error: any) {
-        lastError = error;
+      } catch (error: unknown) {
+        const err = error as AxiosErrorResponse;
+        lastError = err;
         
-        if (currentKey) {
+        if (currentKey && this.keyManager) {
           this.keyManager.markKeyAsFailed(currentKey);
           
           // Log error
           if (settings.ERROR_LOG_ENABLED) {
             await databaseService.createErrorLog({
               geminiKey: this.sanitizeKey(currentKey),
-              modelName: payload.model || settings.MODEL,
-              errorType: error.response?.status?.toString() || 'unknown',
-              errorLog: error.message,
-              errorCode: error.response?.status,
-              requestMsg: payload,
+              modelName: payload.model ?? settings.MODEL,
+              errorType: err.response?.status?.toString() ?? 'unknown',
+              errorLog: err.message,
+              errorCode: err.response?.status ?? 0,
+              requestMsg: safeJsonStringify(payload),
             });
           }
         }
 
         logger.error({
-          error: error.message,
-          status: error.response?.status,
+          error: err.message,
+          status: err.response?.status,
           key: currentKey ? this.sanitizeKey(currentKey) : 'none',
         }, `Request failed (attempt ${attempt + 1}/${settings.MAX_RETRIES}):`);
 
         // Don't retry on certain errors
-        if (error.response?.status === HTTP_STATUS_CODES.BAD_REQUEST || 
-            error.response?.status === HTTP_STATUS_CODES.UNAUTHORIZED) {
+        if (err.response?.status === HTTP_STATUS_CODES.BAD_REQUEST || 
+            err.response?.status === HTTP_STATUS_CODES.UNAUTHORIZED) {
           break;
         }
       }
     }
 
     throw new ExternalServiceError(
-      lastError?.message || 'Failed to generate content after all retries'
+      lastError?.message ?? 'Failed to generate content after all retries'
     );
   }
 
-  async *streamGenerateContent(payload: GeminiRequest, params: any): AsyncGenerator<GeminiResponse, void, unknown> {
+  async *streamGenerateContent(payload: GeminiRequest, params: Record<string, unknown>): AsyncGenerator<GeminiResponse, void, unknown> {
     const startTime = Date.now();
     let currentKey: string | null = null;
     let lastError: Error | null = null;
@@ -236,12 +301,12 @@ export class GeminiChatService {
           await this.initializeKeyManager();
         }
 
-        currentKey = this.keyManager.getNextKey();
+        currentKey = this.keyManager?.getNextKey() ?? null;
         if (!currentKey) {
           throw new AppError('No available API keys in GeminiChatService streamGenerateContent()', HTTP_STATUS_CODES.SERVICE_UNAVAILABLE);
         }
 
-        const model = payload.model || settings.MODEL;
+        const model = payload.model ?? settings.MODEL;
         const url = `${this.baseUrl}/models/${model}:streamGenerateContent`;
         
         const requestPayload = this.buildPayload(payload);
@@ -260,22 +325,22 @@ export class GeminiChatService {
         let fullResponse = '';
         let buffer = '';
         
-        for await (const chunk of response.data) {
-          const chunkStr = chunk.toString();
+        for await (const chunk of response.data as NodeJS.ReadableStream) {
+          const chunkStr = (chunk as Buffer).toString();
           buffer += chunkStr;
           logger.debug(`Response chunk: ${chunkStr}`);
 
           // Process complete lines from buffer
           const lines = buffer.split('\n');
           // Keep the last line in buffer as it might be incomplete
-          buffer = lines.pop() || '';
+          buffer = lines.pop() ?? '';
 
           for (const line of lines) {
             if (line.trim().startsWith('data: ')) {
               const data = line.trim().substring(6);
               
               try {
-                const parsed = JSON.parse(data);
+                const parsed = JSON.parse(data) as Record<string, unknown>;
                 fullResponse += JSON.stringify(parsed);
                 yield parsed;
               } catch (parseError) {
@@ -291,10 +356,10 @@ export class GeminiChatService {
           if (line.startsWith('data: ')) {
             const data = line.substring(6);
             try {
-              const parsed = JSON.parse(data);
+              const parsed = JSON.parse(data) as GeminiResponse;
               fullResponse += JSON.stringify(parsed);
               yield parsed;
-            } catch (parseError) {
+            } catch (parseError: unknown) {
               logger.debug({ err: parseError, data }, 'Failed to parse final chunk');
             }
           }
@@ -311,8 +376,8 @@ export class GeminiChatService {
             geminiKey: this.sanitizeKey(currentKey),
             modelName: model,
             requestType: 'chat_stream',
-            requestMsg: requestPayload,
-            responseMsg: { stream: true, response: fullResponse },
+            requestMsg: safeJsonStringify(requestPayload),
+            responseMsg: safeJsonStringify({ stream: true, response: fullResponse }),
             responseTime,
           });
         }
@@ -324,46 +389,47 @@ export class GeminiChatService {
 
         return;
 
-      } catch (error: any) {
-        lastError = error;
+      } catch (error: unknown) {
+        const err = error as AxiosErrorResponse;
+        lastError = err;
         
-        if (currentKey) {
+        if (currentKey && this.keyManager) {
           this.keyManager.markKeyAsFailed(currentKey);
           
           // Log error
           if (settings.ERROR_LOG_ENABLED) {
             await databaseService.createErrorLog({
               geminiKey: this.sanitizeKey(currentKey),
-              modelName: payload.model || settings.MODEL,
-              errorType: error.response?.status?.toString() || 'unknown',
-              errorLog: error.message,
-              errorCode: error.response?.status,
-              requestMsg: payload,
+              modelName: payload.model ?? settings.MODEL,
+              errorType: err.response?.status?.toString() ?? 'unknown',
+              errorLog: err.message,
+              errorCode: err.response?.status ?? 0,
+              requestMsg: safeJsonStringify(payload),
             });
           }
         }
 
         logger.error({
-          error: error.message,
-          status: error.response?.status,
+          error: err.message,
+          status: err.response?.status,
           key: currentKey ? this.sanitizeKey(currentKey) : 'none',
         }, `Streaming request failed (attempt ${attempt + 1}/${settings.MAX_RETRIES}):`);
 
         // Don't retry on certain errors
-        if (error.response?.status === HTTP_STATUS_CODES.BAD_REQUEST || 
-            error.response?.status === HTTP_STATUS_CODES.UNAUTHORIZED) {
+        if (err.response?.status === HTTP_STATUS_CODES.BAD_REQUEST || 
+            err.response?.status === HTTP_STATUS_CODES.UNAUTHORIZED) {
           break;
         }
       }
     }
 
     throw new ExternalServiceError(
-      lastError?.message || 'Failed to generate streaming content after all retries'
+      lastError?.message ?? 'Failed to generate streaming content after all retries'
     );
   }
 
-  private buildPayload(payload: GeminiRequest): any {
-    const result: any = {};
+  private buildPayload(payload: GeminiRequest): GeminiPayload {
+    const result: GeminiPayload = {};
 
     // Add contents or messages
     if (payload.contents) {
@@ -378,7 +444,7 @@ export class GeminiChatService {
     }
 
     // Add safety settings
-    result.safetySettings = payload.safetySettings || settings.SAFETY_SETTINGS;
+    result.safetySettings = payload.safetySettings ?? settings.SAFETY_SETTINGS;
 
     // Add tools if specified
     if (payload.tools) {
@@ -398,7 +464,7 @@ export class GeminiChatService {
     return result;
   }
 
-  private convertMessagesToContents(messages: any[]): any[] {
+  private convertMessagesToContents(messages: Array<{ role: string; content: string }>): Array<{ role: string; parts: Array<{ text: string }> }> {
     return messages.map(message => ({
       role: message.role === 'assistant' ? 'model' : message.role,
       parts: [{ text: message.content }],

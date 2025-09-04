@@ -9,7 +9,7 @@ export interface UpdateInfo {
   errorMessage: string | null;
 }
 
-export async function checkForUpdates(): Promise<UpdateInfo> {
+export function checkForUpdates(): UpdateInfo {
   try {
     logger.debug('Checking for updates...');
     

@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, ErrorLog, RequestLog, Stats, KeyStatus, FileUpload, Prisma } from '@prisma/client';
 import { getDatabaseLogger } from '@/log/logger';
 import settings from '@/config/config';
 
@@ -24,8 +24,8 @@ export class DatabaseService {
       const setting = await prisma.settings.findUnique({
         where: { key },
       });
-      return setting?.value || null;
-    } catch (error) {
+      return setting?.value ?? null;
+    } catch (error: unknown) {
       logger.error({ err: error }, `Failed to get setting ${key}:`);
       return null;
     }
@@ -35,10 +35,10 @@ export class DatabaseService {
     try {
       await prisma.settings.upsert({
         where: { key },
-        update: { value, description: description || null },
-        create: { key, value, description: description || null },
+        update: { value, description: description ?? null },
+        create: { key, value, description: description ?? null },
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error({ err: error }, `Failed to set setting ${key}:`);
       throw error;
     }
@@ -53,7 +53,7 @@ export class DatabaseService {
         }
         return acc;
       }, {} as Record<string, string>);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error({ err: error }, 'Failed to get all settings:');
       return {};
     }
@@ -66,33 +66,33 @@ export class DatabaseService {
     errorType?: string;
     errorLog?: string;
     errorCode?: number;
-    requestMsg?: any;
+    requestMsg?: Prisma.JsonValue;
   }): Promise<void> {
     try {
       await prisma.errorLog.create({
         data: {
-          geminiKey: data.geminiKey || null,
-          modelName: data.modelName || null,
-          errorType: data.errorType || null,
-          errorLog: data.errorLog || null,
-          errorCode: data.errorCode || null,
-          requestMsg: data.requestMsg,
+          geminiKey: data.geminiKey ?? null,
+          modelName: data.modelName ?? null,
+          errorType: data.errorType ?? null,
+          errorLog: data.errorLog ?? null,
+          errorCode: data.errorCode ?? null,
+          requestMsg: data.requestMsg ?? Prisma.DbNull,
         },
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error({ err: error }, 'Failed to create error log:');
       throw error;
     }
   }
 
-  async getErrorLogs(limit: number = 50, offset: number = 0): Promise<any[]> {
+  async getErrorLogs(limit: number = 50, offset: number = 0): Promise<ErrorLog[]> {
     try {
       return await prisma.errorLog.findMany({
         take: limit,
         skip: offset,
         orderBy: { requestTime: 'desc' },
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error({ err: error }, 'Failed to get error logs:');
       return [];
     }
@@ -112,7 +112,7 @@ export class DatabaseService {
       });
 
       return result.count;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error({ err: error }, 'Failed to delete old error logs:');
       return 0;
     }
@@ -123,35 +123,35 @@ export class DatabaseService {
     geminiKey?: string;
     modelName?: string;
     requestType?: string;
-    requestMsg?: any;
-    responseMsg?: any;
+    requestMsg?: Prisma.JsonValue;
+    responseMsg?: Prisma.JsonValue;
     responseTime?: Date;
   }): Promise<void> {
     try {
       await prisma.requestLog.create({
         data: {
-          geminiKey: data.geminiKey || null,
-          modelName: data.modelName || null,
-          requestType: data.requestType || null,
-          requestMsg: data.requestMsg,
-          responseMsg: data.responseMsg,
-          responseTime: data.responseTime || new Date(),
+          geminiKey: data.geminiKey ?? null,
+          modelName: data.modelName ?? null,
+          requestType: data.requestType ?? null,
+          requestMsg: data.requestMsg ?? Prisma.DbNull,
+          responseMsg: data.responseMsg ?? Prisma.DbNull,
+          responseTime: data.responseTime ?? new Date(),
         },
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error({ err: error }, 'Failed to create request log:');
       throw error;
     }
   }
 
-  async getRequestLogs(limit: number = 50, offset: number = 0): Promise<any[]> {
+  async getRequestLogs(limit: number = 50, offset: number = 0): Promise<RequestLog[]> {
     try {
       return await prisma.requestLog.findMany({
         take: limit,
         skip: offset,
         orderBy: { requestTime: 'desc' },
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error({ err: error }, 'Failed to get request logs:');
       return [];
     }
@@ -171,7 +171,7 @@ export class DatabaseService {
       });
 
       return result.count;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error({ err: error }, 'Failed to delete old request logs:');
       return 0;
     }
@@ -192,13 +192,13 @@ export class DatabaseService {
         update: data,
         create: { date, ...data },
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error({ err: error }, 'Failed to update stats:');
       throw error;
     }
   }
 
-  async getStats(startDate: Date, endDate: Date): Promise<any[]> {
+  async getStats(startDate: Date, endDate: Date): Promise<Stats[]> {
     try {
       return await prisma.stats.findMany({
         where: {
@@ -209,7 +209,7 @@ export class DatabaseService {
         },
         orderBy: { date: 'desc' },
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error({ err: error }, 'Failed to get stats:');
       return [];
     }
@@ -223,18 +223,18 @@ export class DatabaseService {
         update: { isActive, failCount, lastChecked: new Date() },
         create: { keyHash, keyType, isActive, failCount },
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error({ err: error }, 'Failed to update key status:');
       throw error;
     }
   }
 
-  async getKeyStatuses(): Promise<any[]> {
+  async getKeyStatuses(): Promise<KeyStatus[]> {
     try {
       return await prisma.keyStatus.findMany({
         orderBy: { lastChecked: 'desc' },
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error({ err: error }, 'Failed to get key statuses:');
       return [];
     }
@@ -248,23 +248,23 @@ export class DatabaseService {
     size: bigint;
     url?: string;
     provider: string;
-  }): Promise<any> {
+  }): Promise<FileUpload> {
     try {
       return await prisma.fileUpload.create({
         data,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error({ err: error }, 'Failed to create file upload record:');
       throw error;
     }
   }
 
-  async getFileUpload(id: number): Promise<any> {
+  async getFileUpload(id: number): Promise<FileUpload | null> {
     try {
       return await prisma.fileUpload.findUnique({
         where: { id },
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error({ err: error }, 'Failed to get file upload:');
       return null;
     }

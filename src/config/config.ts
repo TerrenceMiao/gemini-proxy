@@ -112,7 +112,7 @@ function parseEnvArray(envVar: string | undefined, defaultValue: string[] = []):
 function parseEnvJSON<T>(envVar: string | undefined, defaultValue: T): T {
   if (!envVar) return defaultValue;
   try {
-    return JSON.parse(envVar);
+    return JSON.parse(envVar) as T;
   } catch {
     return defaultValue;
   }
@@ -132,21 +132,21 @@ function parseEnvNumber(envVar: string | undefined, defaultValue: number): numbe
 // Load settings from environment variables
 function loadSettingsFromEnv(): Settings {
   const rawSettings = {
-    DATABASE_TYPE: (process.env['DATABASE_TYPE'] || 'mysql') as 'mysql' | 'sqlite',
-    SQLITE_DATABASE: process.env['SQLITE_DATABASE'] || 'default_db',
-    MYSQL_HOST: process.env['MYSQL_HOST'] || '',
+    DATABASE_TYPE: (process.env['DATABASE_TYPE'] ?? 'mysql') as 'mysql' | 'sqlite',
+    SQLITE_DATABASE: process.env['SQLITE_DATABASE'] ?? 'default_db',
+    MYSQL_HOST: process.env['MYSQL_HOST'] ?? '',
     MYSQL_PORT: parseEnvNumber(process.env['MYSQL_PORT'], 3306),
-    MYSQL_USER: process.env['MYSQL_USER'] || '',
-    MYSQL_PASSWORD: process.env['MYSQL_PASSWORD'] || '',
-    MYSQL_DATABASE: process.env['MYSQL_DATABASE'] || '',
-    MYSQL_SOCKET: process.env['MYSQL_SOCKET'] || '',
+    MYSQL_USER: process.env['MYSQL_USER'] ?? '',
+    MYSQL_PASSWORD: process.env['MYSQL_PASSWORD'] ?? '',
+    MYSQL_DATABASE: process.env['MYSQL_DATABASE'] ?? '',
+    MYSQL_SOCKET: process.env['MYSQL_SOCKET'] ?? '',
 
     API_KEYS: parseEnvArray(process.env['API_KEYS']),
     VERTEX_API_KEYS: parseEnvArray(process.env['VERTEX_API_KEYS']),
     PAID_KEY: process.env['PAID_KEY'],
 
-    MODEL: process.env['MODEL'] || DEFAULT_MODEL,
-    CREATE_IMAGE_MODEL: process.env['CREATE_IMAGE_MODEL'] || DEFAULT_CREATE_IMAGE_MODEL,
+    MODEL: process.env['MODEL'] ?? DEFAULT_MODEL,
+    CREATE_IMAGE_MODEL: process.env['CREATE_IMAGE_MODEL'] ?? DEFAULT_CREATE_IMAGE_MODEL,
     FILTERED_MODELS: parseEnvArray(process.env['FILTERED_MODELS'], DEFAULT_FILTERED_MODELS),
 
     SAFETY_SETTINGS: parseEnvJSON(process.env['SAFETY_SETTINGS'], DEFAULT_SAFETY_SETTINGS),
@@ -161,7 +161,7 @@ function loadSettingsFromEnv(): Settings {
     STREAM_SHORT_TEXT_THRESHOLD: parseEnvNumber(process.env['STREAM_SHORT_TEXT_THRESHOLD'], DEFAULT_STREAM_SHORT_TEXT_THRESHOLD),
     STREAM_LONG_TEXT_THRESHOLD: parseEnvNumber(process.env['STREAM_LONG_TEXT_THRESHOLD'], DEFAULT_STREAM_LONG_TEXT_THRESHOLD),
 
-    UPLOAD_HANDLER: (process.env['UPLOAD_HANDLER'] || 'INTERNAL') as 'SMMS' | 'PICGO' | 'CLOUDFLARE' | 'INTERNAL',
+    UPLOAD_HANDLER: (process.env['UPLOAD_HANDLER'] ?? 'INTERNAL') as 'SMMS' | 'PICGO' | 'CLOUDFLARE' | 'INTERNAL',
     SMMS_API_KEY: process.env['SMMS_API_KEY'],
     PICGO_HOST: process.env['PICGO_HOST'],
     CLOUDFLARE_ACCOUNT_ID: process.env['CLOUDFLARE_ACCOUNT_ID'],
@@ -187,7 +187,7 @@ function loadSettingsFromEnv(): Settings {
     PROXY_PORT: parseEnvNumber(process.env['PROXY_PORT'], 8080),
     PROXY_USERNAME: process.env['PROXY_USERNAME'],
     PROXY_PASSWORD: process.env['PROXY_PASSWORD'],
-    USER_AGENT: process.env['USER_AGENT'] || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    USER_AGENT: process.env['USER_AGENT'] ?? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
   };
 
   return SettingsSchema.parse(rawSettings);
@@ -196,7 +196,7 @@ function loadSettingsFromEnv(): Settings {
 export let settings = loadSettingsFromEnv();
 
 // Sync initial settings with database
-export async function syncInitialSettings(): Promise<void> {
+export function syncInitialSettings(): void {
   try {
     logger.info('Syncing initial settings with database...');
     

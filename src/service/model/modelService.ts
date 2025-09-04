@@ -1,7 +1,7 @@
 import { getServiceLogger } from '@/log/logger';
 import { settings } from '@/config/config';
 import { geminiApiClient } from '@/service/client/apiClient';
-import { getKeyManagerInstance } from '@/service/key/keyManager';
+import { getKeyManagerInstance, KeyManager } from '@/service/key/keyManager';
 import { ExternalServiceError } from '@/exception/exceptions';
 
 const logger = getServiceLogger();
@@ -27,7 +27,7 @@ export class ModelService {
   private cachedModels: ModelInfo[] = [];
   private cacheTimestamp: number = 0;
   private cacheExpiry: number = 5 * 60 * 1000; // 5 minutes
-  private keyManager: any;
+  private keyManager: KeyManager | null = null;
 
   constructor() {
     this.initializeKeyManager();
@@ -52,7 +52,7 @@ export class ModelService {
         await this.initializeKeyManager();
       }
 
-      const apiKey = this.keyManager.getNextKey();
+      const apiKey = this.keyManager?.getNextKey() ?? null;
       if (!apiKey) {
         throw new ExternalServiceError('No available API keys in ModelService');
       }
@@ -110,7 +110,7 @@ export class ModelService {
 
   async getModel(modelName: string): Promise<ModelInfo | null> {
     const models = await this.getModels();
-    return models.find(model => model.name === modelName || model.name === `models/${modelName}`) || null;
+    return models.find(model => model.name === modelName || model.name === `models/${modelName}`) ?? null;
   }
 
   async getModelCapabilities(modelName: string): Promise<{
@@ -202,7 +202,7 @@ export class ModelService {
     return thinkingPatterns.some(pattern => modelName.toLowerCase().includes(pattern));
   }
 
-  async clearCache(): Promise<void> {
+  clearCache(): void {
     this.cachedModels = [];
     this.cacheTimestamp = 0;
     logger.info('Model cache cleared');

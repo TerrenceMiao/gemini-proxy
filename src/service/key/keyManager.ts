@@ -77,9 +77,7 @@ export class KeyManager {
 
 let keyManagerInstance: KeyManager | null = null;
 
-export async function getKeyManagerInstance(): Promise<KeyManager> {
-  if (!keyManagerInstance) {
-    keyManagerInstance = new KeyManager();
-  }
+export function getKeyManagerInstance(): KeyManager {
+  keyManagerInstance ??= new KeyManager();
   return keyManagerInstance;
 }

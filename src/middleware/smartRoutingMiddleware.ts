@@ -1,19 +1,29 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { getMiddlewareLogger } from '@/log/logger';
 
+interface RequestWithRoutingData extends FastifyRequest {
+  timestamp?: Date;
+  isTTSRequest?: boolean;
+  isImageRequest?: boolean;
+}
+
+interface GeminiRequestBody {
+  responseModalities?: string[];
+}
+
 const logger = getMiddlewareLogger();
 
-export async function smartRoutingMiddleware(
-  request: FastifyRequest,
+export function smartRoutingMiddleware(
+  request: RequestWithRoutingData,
   _reply: FastifyReply
-): Promise<void> {
+): void {
   // Add request ID for tracking
   if (!request.id) {
     request.id = Math.random().toString(36).substring(2, 15);
   }
 
   // Add timestamp
-  (request as any).timestamp = new Date();
+  request.timestamp = new Date();
 
   // Log route matching
   logger.debug({
@@ -29,16 +39,16 @@ export async function smartRoutingMiddleware(
   
   // Detect TTS requests
   if (request.url.includes('generateContent') && request.body) {
-    const body = request.body as any;
+    const body = request.body as GeminiRequestBody;
     if (body.responseModalities?.includes('AUDIO')) {
-      (request as any).isTTSRequest = true;
+      request.isTTSRequest = true;
       logger.debug({ requestId: request.id }, 'TTS request detected');
     }
   }
 
   // Detect image generation requests
   if (request.url.includes('generateImage') || request.url.includes('image')) {
-    (request as any).isImageRequest = true;
+    request.isImageRequest = true;
     logger.debug({ requestId: request.id }, 'Image request detected');
   }
 

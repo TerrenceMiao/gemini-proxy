@@ -17,7 +17,7 @@ export function startScheduler(): void {
 
   // Key health check task (every 5 minutes by default)
   const keyCheckInterval = Math.max(settings.KEY_CHECK_INTERVAL, 60); // minimum 1 minute
-  keyCheckTask = cron.schedule(`*/${Math.floor(keyCheckInterval / 60)} * * * *`, async () => {
+  keyCheckTask = cron.schedule(`*/${Math.floor(keyCheckInterval / 60)} * * * *`, () => {
     try {
       logger.debug('Running key health check...');
       // TODO: Implement key health check
@@ -29,7 +29,7 @@ export function startScheduler(): void {
 
   // Log cleanup task (every hour by default)
   const logCleanupInterval = Math.max(settings.LOG_CLEANUP_INTERVAL, 3600); // minimum 1 hour
-  logCleanupTask = cron.schedule(`0 */${Math.floor(logCleanupInterval / 3600)} * * *`, async () => {
+  logCleanupTask = cron.schedule(`0 */${Math.floor(logCleanupInterval / 3600)} * * *`, () => {
     try {
       logger.debug('Running log cleanup...');
       // TODO: Implement log cleanup
