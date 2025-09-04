@@ -6,6 +6,11 @@
   "bin": {
     "gemini-proxy": "./dist/main.js"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc && tsc-alias && chmod +x dist/main.js",
     "dev": "nodemon",

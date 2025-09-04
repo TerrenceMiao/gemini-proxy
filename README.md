@@ -225,12 +225,14 @@ npm start
 
 ### Command Line
 
+Make sure `gemini` database and tables exist before starting the server.
+
 ```bash
 # Runtime environment variables
 cp .env.example .env
 
 # Start the server
-npx gemini-proxy start
+npx gemini-proxy
 ```
 
 ## Monitoring
