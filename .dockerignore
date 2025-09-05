@@ -79,9 +79,6 @@ jspm_packages/
 # Yarn Integrity file
 .yarn-integrity
 
-# dotenv environment variables file
-.env
-
 # parcel-bundler cache
 .cache
 .parcel-cache
@@ -106,33 +103,6 @@ jspm_packages/
 
 # TernJS port file
 .tern-port
-
-# Python files (from original project)
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# Virtual environments
-venv/
-env/
-ENV/
 
 # Git
 .git
