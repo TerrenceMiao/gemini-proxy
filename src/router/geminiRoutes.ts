@@ -139,6 +139,11 @@ export default async function geminiRoutes(fastify: FastifyInstance) {
           inputTokenLimit: model.inputTokenLimit,
           outputTokenLimit: model.outputTokenLimit,
           supportedGenerationMethods: model.supportedGenerationMethods,
+          temperature: model.temperature,
+          topP: model.topP,
+          topK: model.topK,
+          maxTemperature: model.maxTemperature,
+          thinking: model.thinking,
         })),
       });
 
