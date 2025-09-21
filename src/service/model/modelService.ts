@@ -17,6 +17,8 @@ export interface ModelInfo {
   temperature: number;
   topP: number;
   topK: number;
+  maxTemperature: number;
+  thinking: boolean;
 }
 
 export interface ModelListResponse {

@@ -44,6 +44,8 @@ export default async function geminiRoutes(fastify: FastifyInstance) {
         temperature: model.temperature,
         topP: model.topP,
         topK: model.topK,
+        maxTemperature: model.maxTemperature,
+        thinking: model.thinking,
       });
 
     } catch (error) {
