@@ -23,12 +23,14 @@ export interface ModelInfo {
 
 export interface ModelListResponse {
   models: ModelInfo[];
+  nextPageToken?: string;
 }
 
 export class ModelService {
   private cachedModels: ModelInfo[] = [];
   private cacheTimestamp: number = 0;
   private cacheExpiry: number = 5 * 60 * 1000; // 5 minutes
+  private cachedNextPageToken: string = '';
   private keyManager: any;
 
   constructor() {
@@ -39,12 +41,12 @@ export class ModelService {
     this.keyManager = await getKeyManagerInstance();
   }
 
-  async getModels(forceRefresh: boolean = false): Promise<ModelInfo[]> {
+  async getModels(forceRefresh: boolean = false): Promise<{ models: ModelInfo[]; nextPageToken: string }> {
     const now = Date.now();
     
     if (!forceRefresh && this.cachedModels.length > 0 && (now - this.cacheTimestamp) < this.cacheExpiry) {
       logger.debug('Returning cached models');
-      return this.cachedModels;
+      return { models: this.cachedModels, nextPageToken: this.cachedNextPageToken };
     }
 
     try {
@@ -64,6 +66,7 @@ export class ModelService {
           'X-Goog-Api-Key': apiKey,
         },
       });
+      const nextPageToken = response.data.nextPageToken || '';
 
       const models = response.data.models || [];
       
@@ -73,9 +76,10 @@ export class ModelService {
       // Cache the results
       this.cachedModels = filteredModels;
       this.cacheTimestamp = now;
+      this.cachedNextPageToken = nextPageToken;
       
       logger.info(`Retrieved ${filteredModels.length} models`);
-      return filteredModels;
+      return { models: filteredModels, nextPageToken };
 
     } catch (error) {
       logger.error({ err: error }, 'Failed to fetch models:');
@@ -83,7 +87,7 @@ export class ModelService {
       // If we have cached models, return them as fallback
       if (this.cachedModels.length > 0) {
         logger.warn('Using cached models as fallback');
-        return this.cachedModels;
+        return { models: this.cachedModels, nextPageToken: this.cachedNextPageToken };
       }
       
       throw new ExternalServiceError('Failed to fetch models and no cached models available');
@@ -111,7 +115,7 @@ export class ModelService {
   }
 
   async getModel(modelName: string): Promise<ModelInfo | null> {
-    const models = await this.getModels();
+    const { models } = await this.getModels();
     return models.find(model => model.name === modelName || model.name === `models/${modelName}`) || null;
   }
 
@@ -207,6 +211,7 @@ export class ModelService {
   async clearCache(): Promise<void> {
     this.cachedModels = [];
     this.cacheTimestamp = 0;
+    this.cachedNextPageToken = '';
     logger.info('Model cache cleared');
   }
 

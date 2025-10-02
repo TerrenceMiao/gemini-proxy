@@ -124,14 +124,27 @@ export default async function geminiRoutes(fastify: FastifyInstance) {
   });
 
   // List models
-  fastify.get('/models', async (_request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/models', async (request: FastifyRequest<{
+    Querystring: { pageSize?: number; pageToken?: string };
+  }>, reply: FastifyReply) => {
     try {
+      const { pageSize, pageToken } = request.query || {};
       logger.info('Getting models list');
-      
-      const models = await modelService.getModels();
-      
-      return reply.send({
-        models: models.map(model => ({
+
+      const {models, nextPageToken} = await modelService.getModels();
+
+      // Parse and clamp pagination params
+      const defaultSize = 50;
+      const maxSize = 200;
+      const sizeRaw = typeof pageSize === 'string' ? parseInt(pageSize as any, 10) : pageSize;
+      const size = Math.min(Math.max((sizeRaw ?? defaultSize) || defaultSize, 1), maxSize);
+      const start = pageToken ? Math.max(parseInt(pageToken, 10) || 0, 0) : 0;
+
+      const end = Math.min(start + size, models.length);
+      const pagedModels = models.slice(start, end);
+
+      const response = {
+        models: pagedModels.map(model => ({
           name: model.name,
           version: model.version,
           displayName: model.displayName,
@@ -145,7 +158,10 @@ export default async function geminiRoutes(fastify: FastifyInstance) {
           maxTemperature: model.maxTemperature,
           thinking: model.thinking,
         })),
-      });
+        nextPageToken: nextPageToken,
+      };
+
+      return reply.send(response);
 
     } catch (error) {
       logger.error({ err: error }, 'Failed to get models list:');

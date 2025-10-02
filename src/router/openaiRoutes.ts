@@ -66,7 +66,7 @@ export default async function openaiRoutes(fastify: FastifyInstance) {
     try {
       logger.info('Getting OpenAI models list');
       
-      const models = await modelService.getModels();
+      const { models } = await modelService.getModels();
       
       const openaiModels = models.map(model => ({
         id: model.name.replace('models/', ''),
