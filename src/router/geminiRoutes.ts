@@ -116,6 +116,42 @@ export default async function geminiRoutes(fastify: FastifyInstance) {
 
           return reply.send(embeddingResponse);
 
+        case 'batchEmbedContents':
+          // Batch embeddings (Gemini batchEmbedContents)
+          // Validate model support
+          {
+            const isSupported = await modelService.isModelSupported(modelId);
+            if (!isSupported) {
+              throw new AppError(`Model ${modelId} is not supported`, HTTP_STATUS_CODES.BAD_REQUEST);
+            }
+
+            const requestsInput = (body as any)?.requests;
+            if (!Array.isArray(requestsInput) || requestsInput.length === 0) {
+              throw new AppError('requests must be a non-empty array for batchEmbedContents', HTTP_STATUS_CODES.BAD_REQUEST);
+            }
+
+            // Normalize requests: ensure model and content present; derive content from contents if provided
+            const requests = requestsInput.map((r: any, idx: number) => {
+              let reqContent = r?.content;
+              if (!reqContent) {
+                const text = extractTextFromContents(r?.contents || []);
+                if (text && text.trim() !== '') {
+                  reqContent = { parts: [{ text }] };
+                }
+              }
+              if (!reqContent) {
+                throw new AppError(`No text found in batch embedding request at index ${idx}`, HTTP_STATUS_CODES.BAD_REQUEST);
+              }
+              return {
+                model: r?.model ?? modelId,
+                content: reqContent,
+              };
+            });
+
+            const batchResponse = await geminiChatService.batchEmbedContents({ requests });
+            return reply.send(batchResponse);
+          }
+          
         case 'countTokens':
           const tokenCount = await geminiChatService.countTokens({
             model: modelId,
@@ -296,7 +332,7 @@ function parseModelRequest(params: string): { modelId: string; operation: string
   }
   
   // Validate operation
-  const validOperations = ['generateContent', 'streamGenerateContent', 'embedContent', 'countTokens'];
+  const validOperations = ['generateContent', 'streamGenerateContent', 'embedContent', 'batchEmbedContents', 'countTokens'];
   if (!validOperations.includes(operation)) {
     throw new AppError(`Unsupported operation: ${operation}. Valid operations: ${validOperations.join(', ')}`, HTTP_STATUS_CODES.BAD_REQUEST);
   }

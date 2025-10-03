@@ -474,6 +474,99 @@ export class GeminiChatService {
     );
   }
 
+  async batchEmbedContents(payload: { requests: Array<{ model: string; content: any }> }): Promise<any> {
+    const startTime = Date.now();
+    let currentKey: string | null = null;
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt < settings.MAX_RETRIES; attempt++) {
+      try {
+        if (!this.keyManager) {
+          await this.initializeKeyManager();
+        }
+
+        currentKey = this.keyManager.getNextKey();
+        if (!currentKey) {
+          throw new AppError('No available API keys in GeminiChatService batchEmbedContents()', HTTP_STATUS_CODES.SERVICE_UNAVAILABLE);
+        }
+
+        // The batch embeddings endpoint is bound to the embedding model resource.
+        // Google API expects requests[].model to be set per item; we call the model endpoint explicitly.
+        const url = `${this.baseUrl}/models/text-embedding-004:batchEmbedContents`;
+
+        const requestPayload = {
+          requests: payload.requests,
+        };
+
+        const response = await axios.post<any>(url, requestPayload, {
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': currentKey,
+            'User-Agent': settings.USER_AGENT,
+          },
+          timeout: settings.TIMEOUT * 1000,
+        });
+
+        const endTime = Date.now();
+        const responseTime = new Date(endTime);
+
+        // Log successful request
+        if (settings.REQUEST_LOG_ENABLED) {
+          await databaseService.createRequestLog({
+            geminiKey: this.sanitizeKey(currentKey),
+            modelName: 'text-embedding-004',
+            requestType: 'embedding_batch',
+            requestMsg: requestPayload,
+            responseMsg: response.data,
+            responseTime,
+          });
+        }
+
+        logger.info({
+          model: 'text-embedding-004',
+          key: this.sanitizeKey(currentKey),
+          count: Array.isArray(payload.requests) ? payload.requests.length : 0,
+        }, `Batch embeddings successful in ${endTime - startTime}ms`);
+
+        return response.data;
+
+      } catch (error: any) {
+        lastError = error;
+
+        if (currentKey) {
+          this.keyManager.markKeyAsFailed(currentKey);
+
+          if (settings.ERROR_LOG_ENABLED) {
+            await databaseService.createErrorLog({
+              geminiKey: this.sanitizeKey(currentKey),
+              modelName: 'text-embedding-004',
+              errorType: error.response?.status?.toString() || 'unknown',
+              errorLog: error.message,
+              errorCode: error.response?.status,
+              requestMsg: payload,
+            });
+          }
+        }
+
+        logger.error({
+          error: error.message,
+          status: error.response?.status,
+          key: currentKey ? this.sanitizeKey(currentKey) : 'none',
+        }, `Batch embeddings request failed (attempt ${attempt + 1}/${settings.MAX_RETRIES}):`);
+
+        // Don't retry on certain errors
+        if (error.response?.status === HTTP_STATUS_CODES.BAD_REQUEST ||
+            error.response?.status === HTTP_STATUS_CODES.UNAUTHORIZED) {
+          break;
+        }
+      }
+    }
+
+    throw new ExternalServiceError(
+      lastError?.message || 'Failed to perform batch embeddings after all retries'
+    );
+  }
+
   private buildPayload(payload: GeminiRequest): any {
     const result: any = {};
 
