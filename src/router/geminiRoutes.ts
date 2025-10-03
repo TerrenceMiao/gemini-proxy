@@ -89,14 +89,32 @@ export default async function geminiRoutes(fastify: FastifyInstance) {
           return await handleStreamGenerateContent(modelId, body, params, reply);
 
         case 'embedContent':
-          // TODO: Implement embedding service
-          logger.warn('Embedding service not implemented yet');
+          // Embeddings
+          // Validate model support
+          const isSupported = await modelService.isModelSupported(modelId);
+
+          if (!isSupported) {
+            throw new AppError(`Model ${modelId} is not supported`, HTTP_STATUS_CODES.BAD_REQUEST);
+          }
+
+          // Build content payload: prefer body.content, else derive text from contents
+          let content = (body as any).content;
           
-          return reply.send({
-            embedding: {
-              values: [],
-            },
+          if (!content) {
+            const text = extractTextFromContents(body.contents || []);
+            if (!text || text.trim() === '') {
+              throw new AppError('No text found in request for embeddings', HTTP_STATUS_CODES.BAD_REQUEST);
+            }
+            content = { parts: [{ text }] };
+          }
+
+          const embeddingResponse = await geminiChatService.embedContent({
+            model: modelId,
+            content,
+            contents: body.contents ?? [],
           });
+
+          return reply.send(embeddingResponse);
 
         case 'countTokens':
           const tokenCount = await geminiChatService.countTokens({

@@ -362,6 +362,118 @@ export class GeminiChatService {
     );
   }
 
+  async embedContent(payload: GeminiRequest & { content?: any }): Promise<{ embedding: { values: number[] } }> {
+    const startTime = Date.now();
+    let currentKey: string | null = null;
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt < settings.MAX_RETRIES; attempt++) {
+      try {
+        if (!this.keyManager) {
+          await this.initializeKeyManager();
+        }
+
+        currentKey = this.keyManager.getNextKey();
+        if (!currentKey) {
+          throw new AppError('No available API keys in GeminiChatService embedContent()', HTTP_STATUS_CODES.SERVICE_UNAVAILABLE);
+        }
+
+        const model = payload.model || settings.MODEL;
+        const url = `${this.baseUrl}/models/${model}:embedContent`;
+
+        // Build request body: prefer provided content; otherwise derive from contents/messages
+        let content = payload.content;
+        if (!content) {
+          // Try to derive content from contents/messages
+          if (payload.contents && payload.contents.length > 0) {
+            // Use the first text part if available
+            const first = payload.contents.find(c => Array.isArray(c.parts) && c.parts.some((p: any) => p.text));
+            const text = first ? first.parts.find((p: any) => p.text)?.text : undefined;
+            if (text) {
+              content = { parts: [{ text }] };
+            }
+          } else if (payload.messages && payload.messages.length > 0) {
+            const msg = payload.messages.find(m => typeof m.content === 'string' && m.content.length > 0);
+            if (msg) {
+              content = { parts: [{ text: msg.content }] };
+            }
+          }
+        }
+
+        if (!content) {
+          throw new AppError('No content provided for embeddings', HTTP_STATUS_CODES.BAD_REQUEST);
+        }
+
+        const requestPayload = { content };
+
+        const response = await axios.post<{ embedding: { values: number[] } }>(url, requestPayload, {
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': currentKey,
+            'User-Agent': settings.USER_AGENT,
+          },
+          timeout: settings.TIMEOUT * 1000,
+        });
+
+        const endTime = Date.now();
+        const responseTime = new Date(endTime);
+
+        // Log successful request
+        if (settings.REQUEST_LOG_ENABLED) {
+          await databaseService.createRequestLog({
+            geminiKey: this.sanitizeKey(currentKey),
+            modelName: model,
+            requestType: 'embedding',
+            requestMsg: requestPayload,
+            responseMsg: response.data,
+            responseTime,
+          });
+        }
+
+        logger.info({
+          model,
+          key: this.sanitizeKey(currentKey),
+          dim: response.data.embedding?.values?.length,
+        }, `Embedding successful in ${endTime - startTime}ms`);
+
+        return response.data;
+
+      } catch (error: any) {
+        lastError = error;
+
+        if (currentKey) {
+          this.keyManager.markKeyAsFailed(currentKey);
+
+          if (settings.ERROR_LOG_ENABLED) {
+            await databaseService.createErrorLog({
+              geminiKey: this.sanitizeKey(currentKey),
+              modelName: payload.model || settings.MODEL,
+              errorType: error.response?.status?.toString() || 'unknown',
+              errorLog: error.message,
+              errorCode: error.response?.status,
+              requestMsg: payload,
+            });
+          }
+        }
+
+        logger.error({
+          error: error.message,
+          status: error.response?.status,
+          key: currentKey ? this.sanitizeKey(currentKey) : 'none',
+        }, `Embedding request failed (attempt ${attempt + 1}/${settings.MAX_RETRIES}):`);
+
+        if (error.response?.status === HTTP_STATUS_CODES.BAD_REQUEST ||
+            error.response?.status === HTTP_STATUS_CODES.UNAUTHORIZED) {
+          break;
+        }
+      }
+    }
+
+    throw new ExternalServiceError(
+      lastError?.message || 'Failed to embed content after all retries'
+    );
+  }
+
   private buildPayload(payload: GeminiRequest): any {
     const result: any = {};
 
